@@ -48,15 +48,13 @@ export default function SessionPrepSheet({
       style={{ zIndex: 400 }}
     >
       <div
-        className="sheet-panel scale-in"
+        className="sheet-panel scale-in ms-sheet-card"
         style={{
-          background: colors.bg || G.bg,
           borderRadius: "24px 24px 0 0",
           maxHeight: "min(94dvh, 920px)",
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
-          border: `1px solid ${colors.greyLight || G.greyLight}`,
           borderBottom: "none",
           boxShadow: "0 -12px 40px rgba(0, 0, 0, 0.35)",
         }}
@@ -65,8 +63,8 @@ export default function SessionPrepSheet({
           style={{
             flexShrink: 0,
             padding: "max(12px, env(safe-area-inset-top)) 16px 10px",
-            borderBottom: `1px solid ${colors.greyLight || G.greyLight}`,
-            background: colors.surface || G.surface,
+            borderBottom: "1px solid rgba(255,255,255,0.12)",
+            background: "rgba(6, 16, 31, 0.45)",
           }}
         >
           <div className="ms-sheet-handle" style={{ marginBottom: 12 }} />

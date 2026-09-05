@@ -24,12 +24,15 @@ import { rewritePlanPaceMarkers } from "./lib/natation-sheet/pace-placeholders.j
 import { buildSessionProvenance } from "./lib/session-provenance.js";
 import { buildCoachPlanWeeks, shouldUseCoachGenerator, buildCompetitionSessions, competitionSessionCount, COMPETITION_TIP, buildProgressionLoopSession, buildProgressionLoopWeek, expandLoopWeekSessions, formatLoopSessionTitle, formatLoopWeekSessionTitle, loopDisplaySession, loopSessionOrdinalIndex, withLoopSessionTitle, isoWeekKey, usesSessionLoop } from "./lib/swim-plan-bridge.js";
 import { FONT, FONT_DISPLAY } from "./theme/brand.js";
-import { G, G_DARK, applyTheme } from "./theme/palette.js";
+import { G, G_SOFT, applyTheme } from "./theme/palette.js";
+import { unlockUiSounds } from "./lib/ui-sounds.js";
 import PlanRevealView from "./PlanRevealView.jsx";
 import FirstSwimTip, { hasSeenFirstSwimTip } from "./FirstSwimTip.jsx";
 import CoachCard from "./CoachCard.jsx";
 import PlanTab from "./PlanTab.jsx";
 import Dashboard, { HomeBadgesSection } from "./Dashboard.jsx";
+import AnalyseTab from "./AnalyseTab.jsx";
+import HistoriqueTab from "./HistoriqueTab.jsx";
 import { registerTabUi } from "./tab-ui-registry.js";
 import {
   getSessionRemindersEnabled,
@@ -43,7 +46,6 @@ import SessionCompleteView from "./SessionCompleteView.jsx";
 import ProfileNudgeCard from "./ProfileNudgeCard.jsx";
 import Btn from "./ui/Btn.jsx";
 import WeekStatRing from "./ui/WeekStatRing.jsx";
-import ProfileSection from "./ui/ProfileSection.jsx";
 import { shouldShowPlanReveal, revealMinWaitMs, findNextSession, sessionCardModel, sessionWhyLine } from "./lib/plan-reveal.js";
 import {
   dismissProfileNudge,
@@ -115,7 +117,7 @@ import {
   fetchUserPlansLegacy,
 } from "./lib/plan-account.js";
 import { BADGE_DEFS, computeStats, checkBadges } from "./lib/plan-stats.js";
-import { AppShell, BottomNav, Loading, AppTopBar } from "./app-shell/index.js";
+import { AppShell, AppTabShell, BottomNav, Loading, AppTopBar } from "./app-shell/index.js";
 import {
   GOALS,
   CATEGORIES,
@@ -160,7 +162,6 @@ import WhatsNewSheet, {
   markWhatsNewSeen,
   syncWhatsNewSeenIfNeeded,
 } from "./sheets/WhatsNewSheet.jsx";
-import HistorySessionSheet from "./sheets/HistorySessionSheet.jsx";
 import { resolveReferralCode } from "./lib/referral.js";
 import {
   resolveAvatarUrl,
@@ -213,8 +214,17 @@ const AUTH_PATHS = { "/connexion": "password", "/inscription": "register" };
 const isAuthPath = (pathname) => pathname in AUTH_PATHS;
 
 applyTheme();
+if (typeof window !== "undefined") {
+  const unlockOnce = () => {
+    unlockUiSounds();
+    window.removeEventListener("pointerdown", unlockOnce);
+    window.removeEventListener("keydown", unlockOnce);
+  };
+  window.addEventListener("pointerdown", unlockOnce, { once: true });
+  window.addEventListener("keydown", unlockOnce, { once: true });
+}
 
-// Couleurs lues sur G (DA dark). Plus de pastels light ni d’orange Strava.
+// Couleurs lues sur G (DA soft mist clair).
 const TYPE_KIND = {
   ENDURANCE:    { Icon: Waves, color: "blue", bg: "blueLight", tooltip: "Nage à allure confortable, tu pourrais parler. C'est la base de toute progression." },
   SEUIL:        { Icon: Activity, color: "gold", bg: "goldLight", tooltip: "Effort soutenu mais contrôlé, tu travailles à la limite de ton confort. Améliore ton endurance." },
@@ -230,23 +240,23 @@ function getTypeMeta(type) {
 
 const css = `
   :root {
-    --myswym-bg: ${G_DARK.bg};
-    --myswym-surface: ${G_DARK.surface};
-    --myswym-ink: ${G_DARK.ink};
-    --myswym-ink-light: ${G_DARK.inkLight};
-    --myswym-blue: ${G_DARK.blue};
-    --myswym-blue-light: ${G_DARK.blueLight};
-    --myswym-grey-light: ${G_DARK.greyLight};
-    --myswym-nav-bg: ${G_DARK.navGlass};
-    --myswym-nav-border: ${G_DARK.greyLight};
-    --myswym-glass: ${G_DARK.glass};
+    --myswym-bg: ${G_SOFT.bg};
+    --myswym-surface: ${G_SOFT.surface};
+    --myswym-ink: ${G_SOFT.ink};
+    --myswym-ink-light: ${G_SOFT.inkLight};
+    --myswym-blue: ${G_SOFT.blue};
+    --myswym-blue-light: ${G_SOFT.blueLight};
+    --myswym-grey-light: ${G_SOFT.greyLight};
+    --myswym-nav-bg: ${G_SOFT.navGlass};
+    --myswym-nav-border: ${G_SOFT.greyLight};
+    --myswym-glass: ${G_SOFT.glass};
     --bottom-nav-h: 64px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
     --app-pad-x: 16px;
     --app-max: 100%;
     --sheet-max: 100%;
-    --nav-lift: 0px;
+    --nav-lift: 12px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-text-size-adjust: 100%; }
@@ -338,15 +348,21 @@ const css = `
   }
   .bottom-nav {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    left: 50%;
+    right: auto;
     z-index: 100;
-    background: var(--myswym-nav-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid var(--myswym-nav-border);
-    padding-bottom: var(--safe-bottom);
+    width: min(var(--app-max), calc(100vw - 40px));
+    max-width: 380px;
+    transform: translateX(-50%);
+    bottom: max(var(--nav-lift), env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 999px;
+    box-shadow: 0 12px 36px rgba(50, 110, 180, 0.14);
+    padding-bottom: 0;
+    overflow: hidden;
   }
   .bottom-nav-inner {
     width: 100%;
@@ -377,14 +393,6 @@ const css = `
     bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 16px + 66px);
     width: min(380px, calc(100vw - 32px));
     height: min(560px, calc(100dvh - var(--bottom-nav-h) - var(--safe-bottom) - var(--nav-lift) - 108px));
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border-radius: 16px;
-    background: #ffffff;
-    color: #0b1526;
-    border: 1px solid rgba(11, 21, 38, 0.08);
-    box-shadow: 0 18px 50px rgba(0, 5, 20, 0.45);
   }
   .support-widget--bare {
     bottom: calc(16px + var(--safe-bottom) + 66px);
@@ -397,9 +405,9 @@ const css = `
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(15, 40, 80, 0.22);
+    backdrop-filter: blur(10px) saturate(1.1);
+    -webkit-backdrop-filter: blur(10px) saturate(1.1);
   }
   .sheet-panel {
     width: 100%;
@@ -420,7 +428,9 @@ const css = `
   .h-scroll::-webkit-scrollbar { display: none; }
   .myswym-app {
     min-height: 100dvh;
-    background: var(--myswym-bg);
+    background:
+      radial-gradient(ellipse 90% 55% at 50% -15%, rgba(126, 184, 245, 0.45), transparent 55%),
+      var(--myswym-bg);
   }
   .sticky-app-bar {
     position: sticky;
@@ -439,8 +449,8 @@ const css = `
     }
     body {
       background:
-        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,107,253,0.22), transparent 55%),
-        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0,107,253,0.10), transparent 50%),
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,107,253,0.10), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(26,168,194,0.06), transparent 50%),
         var(--myswym-bg);
       background-attachment: fixed;
     }
@@ -463,21 +473,14 @@ const css = `
       box-shadow: 0 24px 64px rgba(25,28,30,0.22);
     }
     .bottom-nav {
-      left: 50%;
-      right: auto;
       width: min(var(--app-max), calc(100vw - 32px));
-      transform: translateX(-50%);
       bottom: var(--nav-lift);
-      border-radius: 22px;
-      border: 1px solid rgba(0,107,253,0.22);
-      border-top: 1px solid rgba(0,107,253,0.22);
-      box-shadow: 0 12px 40px rgba(0,107,253,0.18);
-      padding-bottom: 0;
-      overflow: hidden;
+      border-color: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 12px 40px rgba(15, 60, 120, 0.14);
     }
     html[data-theme="dark"] .bottom-nav {
-      border-color: rgba(0,107,253,0.22);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      border-color: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
     }
     .myswym-app {
       background: transparent;
@@ -1485,7 +1488,7 @@ const UpdateProgramCard = ({ profile, isPremium, onUpgrade, onSave, stravaBestPa
 
   if (!isPremium) {
     return (
-      <div style={{ background: G.surface, borderRadius: 18, padding: "18px 16px", marginBottom: 16, border: `1px solid ${G.greyLight}`, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+      <div className="ms-glass-card" style={{ borderRadius: 18, padding: "18px 16px", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <Lock size={14} color={G.greyMid} />
           <h3 style={{ fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: "0.04em", color: G.ink, margin: 0 }}>Modifier mon programme</h3>
@@ -1555,7 +1558,7 @@ const UpdateProgramCard = ({ profile, isPremium, onUpgrade, onSave, stravaBestPa
   }
 
   return (
-    <div style={{ background: G.surface, borderRadius: 18, padding: "18px 16px", marginBottom: 16, border: `1px solid ${G.greyLight}`, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+    <div className="ms-glass-card" style={{ borderRadius: 18, padding: "18px 16px", marginBottom: 16 }}>
       <h3 style={{ fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: "0.04em", color: G.ink, marginBottom: 4 }}>Modifier mon programme</h3>
       <p style={{ fontSize: 13, color: G.grey, marginBottom: 16 }}>Tes semaines déjà entamées et tes séances validées sont conservées. La nouvelle fréquence s&apos;applique aux semaines pas encore commencées.</p>
 
@@ -4373,6 +4376,7 @@ const SessionCard = ({
             <>
           <button
             type="button"
+            className={`ms-session-expand${expanded ? " is-open" : ""}`}
             onClick={() => {
               setExpanded((v) => {
                 const next = !v;
@@ -4380,19 +4384,12 @@ const SessionCard = ({
                 return next;
               });
             }}
-            style={{
-              width: "100%", padding: "14px 16px", minHeight: 48,
-              background: expanded ? G.blueLight : "transparent",
-              border: "none", borderTop: `1px solid ${G.greyLight}`,
-              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
-              color: G.inkLight, fontSize: 13, fontWeight: 600,
-            }}
           >
             <span>{expanded ? "Masquer le détail" : phaseCount >= 2 ? `${phaseCount} phases` : `${blockCount} bloc${blockCount > 1 ? "s" : ""}`}</span>
-            {expanded ? <ChevronUp size={14} color={G.greyMid} /> : <ChevronDown size={14} color={G.greyMid} />}
+            {expanded ? <ChevronUp size={14} color="currentColor" /> : <ChevronDown size={14} color="currentColor" />}
           </button>
           {expanded && (
-            <div style={{ background: G.blueLight, padding: "12px 12px 16px" }}>
+            <div className="ms-session-detail">
               <WorkoutPrepView
                 session={session}
                 colors={G}
@@ -4478,17 +4475,15 @@ const WeekCard = ({ week, weekIndex, onComplete, onShare, onEditFeedback, isCurr
   const progress = total > 0 ? done / total : 0;
 
   return (
-    <div style={{
-      background: G.surface,
-      borderRadius: 20,
+    <div
+      className={`ms-week-card${isCurrentWeek ? " is-current" : ""}`}
+      style={{
+      borderRadius: 26,
       overflow: "hidden",
       border: isCurrentWeek
-        ? `1.5px solid ${G.blue}`
-        : allDone ? `1px solid ${allActuallyDone ? G.mint : G.gold}35` : `1px solid ${G.greyLight}`,
+        ? undefined
+        : allDone ? `1px solid ${allActuallyDone ? G.mint : G.gold}45` : undefined,
       marginBottom: 12,
-      boxShadow: isCurrentWeek
-        ? "0 8px 28px rgba(53,93,163,0.12)"
-        : "0 1px 3px rgba(25,28,30,0.03), 0 6px 16px rgba(53,93,163,0.04)",
     }}>
       {isCurrentWeek && (
         <div style={{ height: 3, background: `linear-gradient(90deg, ${G.blue}, ${G.blueMid})` }} />
@@ -4506,7 +4501,7 @@ const WeekCard = ({ week, weekIndex, onComplete, onShare, onEditFeedback, isCurr
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 17, fontWeight: 700, fontFamily: FONT_DISPLAY, color: G.ink, letterSpacing: "-0.03em" }}>Semaine {week.number}</span>
               {isCurrentWeek && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: G.white, background: G.blue, padding: "3px 8px", borderRadius: 6, letterSpacing: "0.04em" }}>En cours</span>
+                <span className="ms-chip is-active" style={{ height: 24, fontSize: 10, padding: "0 10px" }}>En cours</span>
               )}
               {allDone && !isCurrentWeek && (
                 <span style={{
@@ -4771,14 +4766,13 @@ const ProgressionLoopView = ({
   onComplete,
   onAdvanceLoop,
   onSwitchPlan,
-  onAddPlan,
   onDeletePlan,
   onRegenerate,
   onUpgrade,
   onReset,
   onShare,
   onEditFeedback,
-  showHistory = true,
+  showHistory: _showHistory = true,
   embed = false,
   user,
   onOpenMenu,
@@ -4792,38 +4786,17 @@ const ProgressionLoopView = ({
     ? (openSessionIndex >= 0 ? weekSessions[openSessionIndex] : weekSessions[0])
     : (loopDisplaySession(plan) || weekSessions[0]);
   const resolved = session ? isSessionResolved(session) : true;
-  const stats = computeStats(plan);
   const [poolOpen, setPoolOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historySession, setHistorySession] = useState(null);
-  const [copiedRef, setCopiedRef] = useState(null);
-  const HISTORY_PREVIEW = 3;
-  // ordinal = rang réel de validation, conservé malgré le slice/reverse d'affichage
-  const historyItems = (Array.isArray(plan?.history) ? plan.history : [])
-    .map((s, idx) => ({ session: s, ordinal: idx }))
-    .slice(-12)
-    .reverse();
-  const historyVisible = historyOpen ? historyItems : historyItems.slice(0, HISTORY_PREVIEW);
-  const copyHistoryRef = async (key, line) => {
-    if (!line) return;
-    try {
-      await navigator.clipboard.writeText(line);
-      setCopiedRef(key);
-      setTimeout(() => setCopiedRef(null), 2000);
-    } catch {
-      /* clipboard indisponible, la réf reste lisible à l'écran */
-    }
+
+  const loopPad = {
+    paddingBottom: embed ? 16 : "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)",
+    minHeight: embed ? 0 : "100dvh",
   };
-  const loopTitle = findGoalById(profile?.goal)?.label
-    || CATEGORIES.find((c) => c.id === profile?.category)?.label
-    || "Nager & Progresser";
-  const daysToEvent = profile?.eventDate
-    ? Math.max(0, Math.ceil((new Date(profile.eventDate) - new Date()) / 86400000))
-    : null;
+  const LoopShell = embed ? "div" : AppTabShell;
 
   if (!session) {
     return (
-      <div style={{ paddingBottom: embed ? 16 : "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)", minHeight: embed ? 0 : "100dvh" }}>
+      <LoopShell style={loopPad}>
         {!embed && (
           <AppTopBar
             user={user}
@@ -4832,21 +4805,19 @@ const ProgressionLoopView = ({
             plan={plan}
             onTabChange={onTabChange}
             onUpgrade={onUpgrade}
+            immersive
           />
         )}
         <div className="app-shell" style={{ paddingTop: 24 }}>
           <p style={{ color: G.grey }}>Aucune séance. Régénère ton programme.</p>
           <ResetConfirmButton onReset={onReset} variant="card" />
         </div>
-      </div>
+      </LoopShell>
     );
   }
 
   return (
-    <div style={{
-      paddingBottom: embed ? 16 : "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)",
-      minHeight: embed ? 0 : "100dvh",
-    }}>
+    <LoopShell style={loopPad}>
       {!embed && (
         <AppTopBar
           user={user}
@@ -4855,51 +4826,15 @@ const ProgressionLoopView = ({
           plan={plan}
           onTabChange={onTabChange}
           onUpgrade={onUpgrade}
+          immersive
         />
       )}
       {!embed && (
-        <div style={{
-          background: G.bg,
-          borderBottom: `1px solid rgba(142,179,255,0.10)`,
-        }}>
+        <div className="ms-app-subhead">
           <div className="app-shell" style={{ paddingTop: 14, paddingBottom: 12 }}>
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: G.ink, lineHeight: 1, margin: 0 }}>
-              {loopTitle}
-            </h1>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-              <span style={{
-                fontSize: 12, fontWeight: 600, color: G.inkLight,
-                background: G.greyXLight, padding: "4px 9px", borderRadius: 8,
-              }}>
-                {multiSessionWeek
-                  ? `${weekSessions.filter(isSessionResolved).length}/${weekSessions.length} séances`
-                  : "Séance du jour"}
-              </span>
-              {daysToEvent != null && (
-                <span style={{
-                  fontSize: 12, fontWeight: 600, color: G.blue,
-                  background: G.blueLight, padding: "4px 9px", borderRadius: 8,
-                }}>
-                  J−{daysToEvent}
-                </span>
-              )}
-              {!isPremium && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: G.blue, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  <Lock size={11} /> Essai requis
-                </span>
-              )}
-              {isPremium && stats.totalSessions > 0 && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: G.mint }}>
-                  {stats.totalSessions} séance{stats.totalSessions > 1 ? "s" : ""} · {(stats.totalMeters / 1000).toFixed(1)} km
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="app-shell" style={{ paddingBottom: 12 }}>
             <PlanSelector
               plans={plans}
               activePlanId={activePlanId}
-              onAddPlan={onAddPlan}
             />
           </div>
         </div>
@@ -4921,7 +4856,7 @@ const ProgressionLoopView = ({
           />
         ) : (
           <>
-        <div className="ms-session-card" style={{ marginBottom: 14, padding: "16px 18px 18px" }}>
+        <div className="ms-session-card is-glass" style={{ marginBottom: 14, padding: "16px 18px 18px" }}>
           <WorkoutPrepView
             session={session}
             colors={G}
@@ -5040,152 +4975,14 @@ const ProgressionLoopView = ({
             <Btn variant="blue" onClick={onUpgrade} style={{ width: "100%" }}>S’abonner : dès {PRICING.monthlyCommit.label}/mois</Btn>
           </div>
         )}
-
-        {/* Historique Premium, 3 visibles, le reste derrière « Voir plus » */}
-        {showHistory && isPremium && historyItems.length > 0 && (
-          <div style={{
-            background: G.surface, borderRadius: 18, padding: "16px",
-            border: `1px solid ${G.greyLight}`, marginBottom: 12,
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>
-              Historique
-            </div>
-            <p style={{ fontSize: 13, color: G.grey, lineHeight: 1.4, margin: "0 0 12px" }}>
-              Touche une séance pour relire les blocs.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {historyVisible.map(({ session: s, ordinal }, i) => {
-                const rowKey = `${s.title}-${ordinal}`;
-                const prov = buildSessionProvenance(s, {
-                  loopOrdinal: ordinal,
-                  profile,
-                  planId: activePlanId,
-                });
-                const label = formatLoopSessionTitle(ordinal);
-                return (
-                  <div
-                    key={rowKey}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      borderBottom: i < historyVisible.length - 1 ? `1px solid ${G.greyXLight}` : "none",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setHistorySession({ session: s, ordinal })}
-                      aria-label={`Voir ${label}`}
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        minHeight: 48,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 10,
-                        padding: "8px 0",
-                        border: "none",
-                        background: "none",
-                        cursor: "pointer",
-                        textAlign: "left",
-                      }}
-                    >
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: G.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {label}
-                        </div>
-                        <div style={{ fontSize: 11, color: G.greyMid, marginTop: 2 }}>
-                          {s.distance} · {s.completed ? "Terminée" : "Abandonnée"}
-                        </div>
-                      </div>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                        {s.completed ? <Check size={14} color={G.mint} /> : <X size={14} color={G.coral} />}
-                        <ChevronRight size={16} color={G.greyMid} />
-                      </span>
-                    </button>
-                    {prov && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyHistoryRef(rowKey, prov.supportLine);
-                        }}
-                        title={prov.shortLabel}
-                        aria-label={`Copier la référence séance ${prov.refCode} pour le support`}
-                        style={{
-                          border: "none",
-                          background: "none",
-                          padding: "8px 0",
-                          cursor: "pointer",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: G.greyMid,
-                          textDecoration: "underline",
-                          textUnderlineOffset: 2,
-                          fontVariantNumeric: "tabular-nums",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {copiedRef === rowKey ? "réf. copiée" : `réf. ${prov.refCode}`}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {historyItems.length > HISTORY_PREVIEW && !historyOpen && (
-              <button
-                type="button"
-                onClick={() => setHistoryOpen(true)}
-                style={{
-                  width: "100%", marginTop: 10, minHeight: 44, borderRadius: 12,
-                  border: `1px solid ${G.greyLight}`, background: G.bg,
-                  color: G.blue, fontWeight: 700, fontSize: 13, cursor: "pointer",
-                }}
-              >
-                Voir plus
-              </button>
-            )}
-            {historyItems.length > HISTORY_PREVIEW && historyOpen && (
-              <button
-                type="button"
-                onClick={() => setHistoryOpen(false)}
-                style={{
-                  width: "100%", marginTop: 8, minHeight: 40, border: "none", background: "none",
-                  color: G.grey, fontWeight: 600, fontSize: 13, cursor: "pointer",
-                }}
-              >
-                Réduire
-              </button>
-            )}
-          </div>
-        )}
-
-        <HistorySessionSheet
-          open={!!historySession}
-          session={historySession?.session}
-          ordinal={historySession?.ordinal ?? 0}
-          accent={{
-            bg: getTypeMeta(historySession?.session?.type).bg,
-            color: getTypeMeta(historySession?.session?.type).color,
-          }}
-          isPremium={isPremium}
-          profile={profile}
-          planId={activePlanId}
-          onClose={() => setHistorySession(null)}
-          onUpgrade={onUpgrade}
-          onShare={onShare}
-        />
       </div>
-    </div>
+    </LoopShell>
   );
 };
 
 const PlanSelector = ({
   plans,
   activePlanId,
-  onAddPlan,
 }) => {
   const planList = plans || [];
   const activeEntry = planList.find((entry) => entry.id === activePlanId) || planList[0] || null;
@@ -5195,14 +4992,11 @@ const PlanSelector = ({
   if (!planList.length) return null;
 
   return (
-    <div style={{
+    <div className="ms-glass-card" style={{
       width: "100%",
       minHeight: 56,
       padding: "12px 16px",
       borderRadius: 18,
-      border: `1.5px solid ${G.greyLight}`,
-      background: G.surface,
-      boxShadow: "0 2px 10px rgba(25,28,30,0.04)",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -5222,27 +5016,6 @@ const PlanSelector = ({
           </div>
         )}
       </div>
-      {onAddPlan && (
-        <button
-          type="button"
-          onClick={onAddPlan}
-          style={{
-            flexShrink: 0,
-            minHeight: 40,
-            padding: "8px 12px",
-            borderRadius: 12,
-            cursor: "pointer",
-            border: `1.5px solid ${G.blue}`,
-            background: G.blueLight,
-            color: G.blue,
-            fontSize: 12,
-            fontWeight: 700,
-            whiteSpace: "nowrap",
-          }}
-        >
-          Nouveau plan
-        </button>
-      )}
     </div>
   );
 };
@@ -7841,11 +7614,15 @@ export default function App() {
     return "onboarding";
   });
   const [activeTab, setActiveTab] = useState("home");
+  const lastDockTabRef = useRef("home");
   /** Navigation onglets : remonte en haut (y compris re-tap sur l’onglet actif). */
   const goTab = (tab) => {
     if (tab === activeTab) {
       scrollAppToTop();
       return;
+    }
+    if (activeTab === "home" || activeTab === "plan" || activeTab === "analyse" || activeTab === "history") {
+      lastDockTabRef.current = activeTab;
     }
     setActiveTab(tab);
   };
@@ -10998,13 +10775,63 @@ export default function App() {
           mode: questionnaireMode,
           onEditProfile: () => goTab("profile"),
         }} />}
-        {activeTab === "profile" && <ProfileTab  plan={plan} profile={activeProfile} user={user} onUserUpdate={setUser} onOpenMenu={() => setSettingsOpen(true)} onTabChange={goTab} onEquipmentChange={handleEquipmentChange} onSwimmerProfileChange={handleSwimmerProfileChange} />}
+        {activeTab === "analyse" && (
+          <AnalyseTab
+            plan={plan}
+            profile={activeProfile}
+            user={user}
+            isPremium={isPremium}
+            onOpenMenu={() => setSettingsOpen(true)}
+            onTabChange={goTab}
+            onUpgrade={(ctx) => openUpgrade(ctx || "trial_required")}
+            onPaceUpdate={handlePaceUpdate}
+            onValidateSession={handleComplete}
+          />
+        )}
+        {activeTab === "history" && (
+          <HistoriqueTab
+            plan={plan}
+            profile={activeProfile}
+            user={user}
+            isPremium={isPremium}
+            activePlanId={activePlanId}
+            onOpenMenu={() => setSettingsOpen(true)}
+            onTabChange={goTab}
+            onUpgrade={(ctx) => openUpgrade(ctx || "trial_required")}
+            onShare={openShare}
+          />
+        )}
+        {activeTab === "profile" && (
+          <ProfileTab
+            plan={plan}
+            profile={activeProfile}
+            user={user}
+            onUserUpdate={setUser}
+            onTabChange={goTab}
+            onBack={() => goTab(lastDockTabRef.current || "home")}
+            onEquipmentChange={handleEquipmentChange}
+            onSwimmerProfileChange={handleSwimmerProfileChange}
+            isPremium={isPremium}
+            onUpgrade={(ctx) => openUpgrade(ctx || "trial_required")}
+            onPortal={handlePortal}
+            onRefreshStatus={handleRefreshStatus}
+            onSignOut={handleSignOut}
+            onDeleteAccount={handleDeleteAccount}
+            referralSlot={<ReferralShareCard />}
+          />
+        )}
         <Suspense fallback={null}>
         {activeTab === "buddies" && hasSwumNav && <BuddyMatching user={user} profile={activeProfile} onOpenMenu={() => setSettingsOpen(true)} onTabChange={goTab} canUseBuddies={accessState.canUseBuddies} onUpgrade={(ctx) => openUpgrade(ctx || "buddies")} />}
         </Suspense>
 
-        <Suspense fallback={null}><SupportBubble aboveBottomNav user={user} /></Suspense>
-        <BottomNav active={activeTab} onChange={goTab} newBadge={newBadgeId !== null} hideBuddies={!hasSwumNav} lockBuddies={!accessState.canUseBuddies} />
+        <Suspense fallback={null}><SupportBubble aboveBottomNav={activeTab !== "profile"} user={user} /></Suspense>
+        {activeTab !== "profile" && (
+          <BottomNav
+            active={activeTab === "buddies" ? "analyse" : activeTab}
+            onChange={goTab}
+            newBadge={newBadgeId !== null}
+          />
+        )}
         <Suspense fallback={null}>
         <SettingsDrawer
           open={settingsOpen}
@@ -11012,32 +10839,16 @@ export default function App() {
           user={user}
           isPremium={isPremium}
           onUpgrade={() => openUpgrade()}
-          onPortal={handlePortal}
-          onRefreshStatus={handleRefreshStatus}
+          onGoHome={() => goTab("home")}
+          onGoPlan={() => goTab("plan")}
+          onGoAnalyse={() => goTab("analyse")}
+          onGoHistory={() => goTab("history")}
           onGoProfile={() => goTab("profile")}
           onGoBuddies={() => goTab("buddies")}
           showBuddies={hasSwumNav}
-          onSignOut={handleSignOut}
-          onDeleteAccount={handleDeleteAccount}
-          plan={plan}
-          profile={activeProfile}
-          onPaceUpdate={handlePaceUpdate}
-          onValidateSession={handleComplete}
-          connectionsSlot={(
-            <StravaSection
-              user={user}
-              plan={plan}
-              profile={activeProfile}
-              currentPace100={activeProfile?.pace100}
-              onPaceUpdate={handlePaceUpdate}
-              onValidateSession={handleComplete}
-              showProgramActions={false}
-              showDetails={false}
-              isPremium={isPremium}
-              onUpgrade={() => openUpgrade()}
-            />
-          )}
-          referralSlot={<ReferralShareCard />}
+          lockBuddies={!accessState.canUseBuddies}
+          showModifyPlan={!!plan || plans.length > 0}
+          onModifyPlan={handleAddPlan}
         />
         </Suspense>
 

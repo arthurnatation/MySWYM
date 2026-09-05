@@ -170,7 +170,7 @@ export default function TarifsPage() {
 
       <section className="ms-pricing-hero">
         <div className="ms-pricing-wrap">
-          <Breadcrumb onDark items={crumbs} />
+           <Breadcrumb items={crumbs} />
           <p className="ms-pricing-kicker">{t("pricingPage.eyebrow")}</p>
           <h1 className="ms-pricing-h1">{t("pricingPage.h1")}</h1>
           <p className="ms-pricing-lead">{t("pricingPage.lead")}</p>

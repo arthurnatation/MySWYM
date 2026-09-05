@@ -60,7 +60,7 @@ export default function PublicNav() {
         <div className="ms-header-inner">
           <LocalizedLink to="/" className="ms-brand" aria-label={t("nav.homeAria")}>
             <img
-              src="/logo-myswym-banner-blanc.png"
+              src="/logo-myswym-on-light.png"
               alt="mySWYM"
               height={26}
               width={178}
@@ -121,7 +121,7 @@ export default function PublicNav() {
             {links.map(([label, href]) => (
               <LocalizedLink key={label} to={href} className="ms-drawer-link" onClick={() => setMenuOpen(false)}>
                 {label}
-                <ChevronRight size={16} color="#9bb0c8" />
+                <ChevronRight size={16} color="#6b7c8f" />
               </LocalizedLink>
             ))}
             <div className="ms-drawer-actions">

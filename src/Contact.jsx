@@ -87,7 +87,7 @@ export default function ContactPage() {
       <PublicNav />
       <main className="ms-contact">
         <div className="ms-contact-wrap">
-          <Breadcrumb items={crumbs} onDark />
+           <Breadcrumb items={crumbs} />
           <div className="ms-contact-grid">
             <section>
               <p className="ms-pricing-kicker">{t("contactPage.eyebrow")}</p>

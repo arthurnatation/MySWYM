@@ -1,43 +1,62 @@
-import { Home, Calendar, Users, User, Lock } from "lucide-react";
+import { Home, Calendar, ChartNoAxesCombined, History } from "lucide-react";
 import { G } from "../theme/palette.js";
+import { playUiSound } from "../lib/ui-sounds.js";
 
-export default function BottomNav({ active, onChange, newBadge, hideBuddies = false, lockBuddies = false }) {
+export default function BottomNav({ active, onChange, newBadge }) {
   const tabs = [
     { id: "home", Icon: Home, label: "Accueil" },
     { id: "plan", Icon: Calendar, label: "Programme" },
-    !hideBuddies && { id: "buddies", Icon: Users, label: "Binômes", locked: lockBuddies },
-    { id: "profile", Icon: User, label: "Profil" },
-  ].filter(Boolean);
+    { id: "analyse", Icon: ChartNoAxesCombined, label: "Analyse" },
+    { id: "history", Icon: History, label: "Historique" },
+  ];
   return (
     <div className="bottom-nav">
-      <nav className="bottom-nav-inner" style={{ minHeight: "var(--bottom-nav-h)", padding: "6px 0 8px" }} aria-label="Navigation principale">
+      <nav className="bottom-nav-inner" style={{ minHeight: "var(--bottom-nav-h)", padding: "8px 6px" }} aria-label="Navigation principale">
         {tabs.map((t) => {
           const isActive = active === t.id;
-          const muted = t.locked && !isActive;
-          const iconColor = isActive ? G.blue : muted ? G.greyMid : G.greyMid;
+          const iconColor = isActive ? G.blue : G.grey;
           return (
             <button
               key={t.id}
               type="button"
-              onClick={() => onChange(t.id)}
+              onClick={() => {
+                playUiSound("nav");
+                onChange(t.id);
+              }}
               aria-current={isActive ? "page" : undefined}
-              aria-label={t.locked ? `${t.label} (abonnés)` : t.label}
+              aria-label={t.label}
               style={{
                 flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                gap: 4, background: "none", border: "none", cursor: "pointer",
-                minHeight: 48, padding: "6px 4px", position: "relative",
-                opacity: muted ? 0.55 : 1,
+                gap: 2, background: "none", border: "none", cursor: "pointer",
+                minHeight: 48, padding: "4px 2px", position: "relative",
               }}
             >
-              <span style={{ position: "relative", display: "inline-flex" }}>
-                <t.Icon size={22} color={iconColor} strokeWidth={isActive ? 2.5 : 1.8} style={{ transition: "all 0.2s" }} />
-                {t.locked && (
-                  <Lock size={10} color={iconColor} strokeWidth={2.6} style={{ position: "absolute", right: -6, top: -3 }} />
+              <span
+                className={isActive ? "ms-nav-active-halo" : undefined}
+                style={{
+                  position: "relative",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 44,
+                  height: 36,
+                  borderRadius: 999,
+                  background: isActive ? "rgba(0, 107, 253, 0.12)" : "transparent",
+                  transition: "background 0.2s ease",
+                }}
+              >
+                <t.Icon size={22} color={iconColor} strokeWidth={isActive ? 2.2 : 1.6} style={{ transition: "all 0.2s" }} />
+                {t.id === "analyse" && newBadge && (
+                  <div style={{ position: "absolute", top: 2, right: 2, width: 8, height: 8, borderRadius: "50%", background: G.coral }} />
                 )}
               </span>
-              <span style={{ fontSize: 11, fontWeight: isActive ? 700 : 500, color: isActive ? G.blue : G.grey }}>{t.label}</span>
-              {t.id === "profile" && newBadge && <div style={{ position: "absolute", top: 6, right: "calc(50% - 18px)", width: 8, height: 8, borderRadius: "50%", background: G.coral }} />}
-              {isActive && <div style={{ position: "absolute", bottom: 2, width: 28, height: 3, borderRadius: 2, background: G.blue }} />}
+              <span style={{
+                fontSize: 10,
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? G.blue : G.grey,
+              }}>
+                {t.label}
+              </span>
             </button>
           );
         })}

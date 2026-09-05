@@ -37,7 +37,7 @@ export default function ReviewsPage() {
       <PublicNav />
       <main style={{ paddingTop: "calc(3.5rem + env(safe-area-inset-top, 0px))" }}>
         <div className="lp-wrap" style={{ maxWidth: 800, paddingTop: 28 }}>
-          <Breadcrumb items={crumbs} onDark />
+           <Breadcrumb items={crumbs} />
         </div>
         <LandingReviews asPage />
       </main>

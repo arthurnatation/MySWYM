@@ -6,14 +6,14 @@
  * Allure chiffrée : pastille @1:42-1:48 + tip plage cible.
  */
 import { useState } from "react";
-import { createPortal } from "react-dom";
-import { Info, X } from "lucide-react";
+import { Info } from "lucide-react";
 import {
   formatDepartHuman,
   formatRestHuman,
   stripAllureWordsDuplicatedByChips,
 } from "../lib/workout-display.js";
 import { fourNagesDisplayCue } from "../lib/natation-sheet/parse.js";
+import SoftMistSheet from "../sheets/SoftMistSheet.jsx";
 
 const ALLURE_TIPS = {
   souple: {
@@ -231,7 +231,7 @@ function PaceClock({ seconds = 120, size = 160 }) {
   const cy = size / 2;
   const r = size * 0.42;
   const handR = r * 0.78;
-  const colors = ["#e11d48", "#eab308", "#22c55e", "#3b82f6"];
+  const colors = ["#e85a68", "#d4a017", "#1fae86", "#006bfd"];
   // 4 aiguilles aux quarts d’heure (0 / 15 / 30 / 45 s)
   const hands = [0, 15, 30, 45].map((sec, i) => {
     const deg = (sec / 60) * 360;
@@ -246,7 +246,7 @@ function PaceClock({ seconds = 120, size = 160 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <circle cx={cx} cy={cy} r={r} fill="#0a162c" stroke="#1e3a5f" strokeWidth={3} />
+        <circle cx={cx} cy={cy} r={r} fill="#f4f8fc" stroke="#c5dffb" strokeWidth={3} />
         {Array.from({ length: 60 }, (_, i) => {
           const deg = (i / 60) * 360;
           const rad = ((deg - 90) * Math.PI) / 180;
@@ -260,7 +260,7 @@ function PaceClock({ seconds = 120, size = 160 }) {
               y1={cy + inner * Math.sin(rad)}
               x2={cx + outer * Math.cos(rad)}
               y2={cy + outer * Math.sin(rad)}
-              stroke={major ? "#e2e8f0" : "#64748b"}
+              stroke={major ? "#6b7c8f" : "#b4c6db"}
               strokeWidth={major ? 2 : 1}
             />
           );
@@ -278,7 +278,7 @@ function PaceClock({ seconds = 120, size = 160 }) {
               y={ty}
               textAnchor="middle"
               dominantBaseline="middle"
-              fill="#94a3b8"
+              fill="#6b7c8f"
               fontSize={11}
               fontWeight={700}
             >
@@ -298,60 +298,25 @@ function PaceClock({ seconds = 120, size = 160 }) {
             strokeLinecap="round"
           />
         ))}
-        <circle cx={cx} cy={cy} r={5} fill="#f8fafc" />
+        <circle cx={cx} cy={cy} r={5} fill="#0f1b2d" />
       </svg>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#94a3b8", textAlign: "center", lineHeight: 1.35 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7c8f", textAlign: "center", lineHeight: 1.35 }}>
         {paceClockCaption(seconds)}
       </div>
     </div>
   );
 }
 
-function TipSheetShell({ eyebrow, title, onClose, colors: G, children }) {
-  return createPortal(
-    <div
-      className="sheet-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-      onClick={(e) => e.target === e.currentTarget && onClose?.()}
+function TipSheetShell({ eyebrow, title, onClose, children }) {
+  return (
+    <SoftMistSheet
+      eyebrow={eyebrow}
+      title={title}
+      onClose={onClose}
+      lockScroll={false}
     >
-      <div
-        className="sheet-panel scale-in"
-        style={{
-          background: G.surface,
-          borderRadius: "24px 24px 0 0",
-          padding: "20px 20px max(28px, env(safe-area-inset-bottom))",
-          maxHeight: "85dvh",
-          overflowY: "auto",
-        }}
-      >
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: G.greyLight, margin: "0 auto 16px" }} />
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>
-              {eyebrow}
-            </div>
-            <h3 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: G.ink, lineHeight: 1.15 }}>
-              {title}
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer"
-            style={{
-              width: 44, height: 44, borderRadius: 12, border: `1px solid ${G.greyLight}`,
-              background: G.greyXLight, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
-            }}
-          >
-            <X size={18} color={G.ink} />
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>,
-    document.body,
+      {children}
+    </SoftMistSheet>
   );
 }
 
@@ -368,20 +333,11 @@ function AllureTipSheet({ tipKey, onClose, colors: G, enchainement }) {
     );
 
     return (
-      <TipSheetShell eyebrow="Allure" title={tip.title} onClose={onClose} colors={G}>
-        <p style={{ margin: "0 0 14px", fontSize: 15, color: G.inkLight, lineHeight: 1.5, fontWeight: 600 }}>
+      <TipSheetShell eyebrow="Allure" title={tip.title} onClose={onClose}>
+        <p className="ms-tip-lead">
           Sur cette série, enchaîne les allures dans cet ordre.
         </p>
-        <ul
-          style={{
-            margin: "0 0 16px",
-            padding: "0 0 0 18px",
-            listStyle: "disc",
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
+        <ul className="ms-tip-list">
           {steps.map((st, i) => {
             const key = keys[i];
             const tipRow = key ? ALLURE_TIPS[key] : null;
@@ -390,93 +346,83 @@ function AllureTipSheet({ tipKey, onClose, colors: G, enchainement }) {
             const countPrefix =
               isRepStyle && Number(st.n) >= 1 ? `${st.n}× ` : "";
             return (
-              <li
-                key={`${st.allure}-${i}`}
-                style={{ fontSize: 15, color: G.inkLight, lineHeight: 1.45, fontWeight: 600 }}
-              >
-                <span style={{ color: G.ink, fontWeight: 800 }}>
+              <li key={`${st.allure}-${i}`} className="ms-tip-list-item">
+                <strong>
                   {countPrefix}{label}
-                </span>
-                {blurb ? (
-                  <span>
-                    {", "}
-                    {blurb}
-                  </span>
-                ) : null}
+                </strong>
+                {blurb ? ` · ${blurb}` : null}
               </li>
             );
           })}
         </ul>
         {showLentSouple ? (
-          <p style={{ margin: 0, fontSize: 13, color: G.grey, lineHeight: 1.45, fontWeight: 600 }}>
-            <span style={{ color: G.inkLight, fontWeight: 800 }}>Lent ≠ souple</span>
-            {", "}
-            lent = allure lente contrôlée ; souple = récupération relâchée. Ce n’est pas la même chose.
-          </p>
+          <div className="ms-tip-block">
+            <div className="ms-tip-block-label">Lent ≠ souple</div>
+            <div className="ms-tip-block-text" style={{ fontSize: 13, fontWeight: 600, color: "var(--ms-ink-soft)" }}>
+              Lent = allure lente contrôlée ; souple = récupération relâchée. Ce n’est pas la même chose.
+            </div>
+          </div>
         ) : null}
       </TipSheetShell>
     );
   }
 
   return (
-    <TipSheetShell eyebrow="Allure" title={tip.title} onClose={onClose} colors={G}>
-      <p style={{ margin: 0, fontSize: 15, color: G.inkLight, lineHeight: 1.5, fontWeight: 600 }}>
-        {tip.body}
-      </p>
+    <TipSheetShell eyebrow="Allure" title={tip.title} onClose={onClose}>
+      <p className="ms-tip-lead">{tip.body}</p>
     </TipSheetShell>
   );
 }
 
-function DepartTipSheet({ label, seconds, onClose, colors: G }) {
+function DepartTipSheet({ label, seconds, onClose }) {
   const human = formatDepartHuman(seconds);
   return (
-    <TipSheetShell eyebrow="Départ à la montre" title={label || "D…"} onClose={onClose} colors={G}>
-      <p style={{ margin: "0 0 16px", fontSize: 15, color: G.inkLight, lineHeight: 1.5, fontWeight: 600 }}>
+    <TipSheetShell eyebrow="Départ à la montre" title={label || "D…"} onClose={onClose}>
+      <p className="ms-tip-lead">
         Tu repars toutes les {human}. Regarde l’horloge de bassin : tu pars quand une aiguille est sur un repère, et tu repars quand elle revient au même endroit
         {paceClockBodySuffix(seconds)}.
       </p>
-      <div style={{
-        background: G.greyXLight,
-        borderRadius: 16,
-        padding: "16px 12px",
-        marginBottom: 14,
-      }}>
+      <div className="ms-tip-clock">
         <PaceClock seconds={seconds || 60} />
       </div>
-      <p style={{ margin: 0, fontSize: 13, color: G.grey, lineHeight: 1.45, fontWeight: 600 }}>
+      <p className="ms-tip-lead" style={{ marginBottom: 0, fontSize: 13 }}>
         Plus tu nages vite, plus tu récupères avant le prochain départ. Les 4 aiguilles colorées servent aux différentes lignes du bassin.
       </p>
     </TipSheetShell>
   );
 }
 
-function AllurePaceTipSheet({ label, low, high, onClose, colors: G }) {
+function AllurePaceTipSheet({ label, low, high, onClose }) {
   const range = low && high ? `${low}, ${high}` : (label || "").replace(/^@/, "");
   return (
-    <TipSheetShell eyebrow="Allure cible" title={label || "@…"} onClose={onClose} colors={G}>
-      <p style={{ margin: "0 0 12px", fontSize: 15, color: G.inkLight, lineHeight: 1.5, fontWeight: 600 }}>
+    <TipSheetShell eyebrow="Allure cible" title={label || "@…"} onClose={onClose}>
+      <p className="ms-tip-lead">
         Tu vises la fourchette {range} sur la distance indiquée (temps au chrono pour la rep, ou ramené au 100 m).
       </p>
-      <p style={{ margin: "0 0 12px", fontSize: 15, color: G.inkLight, lineHeight: 1.5, fontWeight: 600 }}>
-        Reste entre le bas et le haut de la plage : trop lent, l’effort manque ; trop vite, tu sors de la zone prévue pour la série.
-      </p>
-      <p style={{ margin: 0, fontSize: 13, color: G.grey, lineHeight: 1.45, fontWeight: 600 }}>
+      <div className="ms-tip-block">
+        <div className="ms-tip-block-text" style={{ fontSize: 14, fontWeight: 600, color: "var(--ms-ink-soft)" }}>
+          Reste entre le bas et le haut de la plage : trop lent, l’effort manque ; trop vite, tu sors de la zone prévue pour la série.
+        </div>
+      </div>
+      <p className="ms-tip-lead" style={{ marginBottom: 0, fontSize: 13 }}>
         Cette allure est calculée à partir de ton temps de référence (T100). Ce n’est pas un départ à la montre (D…) : ici tu contrôles le rythme de nage, pas l’intervalle au mur.
       </p>
     </TipSheetShell>
   );
 }
 
-function RestTipSheet({ label, seconds, onClose, colors: G }) {
+function RestTipSheet({ label, seconds, onClose }) {
   const human = formatRestHuman(seconds);
   return (
-    <TipSheetShell eyebrow="Récupération" title={label || "R…"} onClose={onClose} colors={G}>
-      <p style={{ margin: "0 0 12px", fontSize: 15, color: G.inkLight, lineHeight: 1.5, fontWeight: 600 }}>
+    <TipSheetShell eyebrow="Récupération" title={label || "R…"} onClose={onClose}>
+      <p className="ms-tip-lead">
         Tu t’arrêtes {human} entre les reps (ou à la fin de la série). Le chrono de pause commence quand tu arrives au mur.
       </p>
-      <p style={{ margin: 0, fontSize: 13, color: G.grey, lineHeight: 1.45, fontWeight: 600 }}>
-        Ce n’est pas un départ à la montre (D…) : avec R, tu repartis après ta pause, pas à un intervalle fixe sur l’horloge.
-      </p>
+      <div className="ms-tip-block">
+        <div className="ms-tip-block-text" style={{ fontSize: 14, fontWeight: 600, color: "var(--ms-ink-soft)" }}>
+          Ce n’est pas un départ à la montre (D…) : avec R, tu repartis après ta pause, pas à un intervalle fixe sur l’horloge.
+        </div>
+      </div>
     </TipSheetShell>
   );
 }

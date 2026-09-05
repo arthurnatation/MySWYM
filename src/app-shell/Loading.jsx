@@ -1,15 +1,25 @@
-/** Boot loader, logo + barre. Styles dans index.html. */
+/** Boot soft mist : le mark se pose. Styles dans index.html. */
 export default function Loading() {
   return (
     <div className="myswym-boot" role="status" aria-live="polite" aria-busy="true">
       <div className="myswym-boot-inner">
-        <div className="myswym-boot-icon-wrap">
-          <img className="myswym-boot-icon" src="/apple-touch-icon.png" alt="" width={88} height={88} />
+        <div className="myswym-boot-stage" aria-hidden="true">
+          <span className="myswym-boot-blob" />
+          <img
+            className="myswym-boot-mark"
+            src="/logo-mark.png"
+            alt=""
+            width={168}
+            height={111}
+          />
         </div>
-        <img className="myswym-boot-wordmark" src="/logo-myswym-banner-blanc.png" alt="mySWYM" height={28} width={192} />
-        <p className="myswym-boot-status">Préparation de votre espace nageur</p>
-        <div className="myswym-boot-track" aria-hidden="true"><div className="myswym-boot-bar" /></div>
-        <p className="myswym-boot-label">Un instant</p>
+        <img
+          className="myswym-boot-wordmark"
+          src="/logo-myswym-on-light.png"
+          alt="mySWYM"
+          height={22}
+          width={151}
+        />
       </div>
     </div>
   );

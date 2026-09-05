@@ -17,6 +17,7 @@ export default function HistorySessionSheet({
   open,
   session,
   ordinal = 0,
+  title: titleOverride = null,
   colors = G,
   accent,
   isPremium = true,
@@ -67,7 +68,7 @@ export default function HistorySessionSheet({
 
   if (!open || !session) return null;
 
-  const title = formatLoopSessionTitle(ordinal);
+  const title = titleOverride || formatLoopSessionTitle(ordinal);
   const statusLabel = session.completed ? "Terminée" : "Abandonnée";
   const sessionKey = `history:${planId || "loop"}:${ordinal}`;
 
@@ -112,7 +113,7 @@ export default function HistorySessionSheet({
 
   return createPortal(
     <div
-      className="sheet-overlay"
+      className="sheet-overlay ms-soft-overlay"
       role="dialog"
       aria-modal="true"
       aria-label={`Séance passée, ${title}`}
@@ -120,50 +121,15 @@ export default function HistorySessionSheet({
       style={{ zIndex: 400 }}
     >
       <div
-        className="sheet-panel scale-in"
-        style={{
-          background: colors.bg || G.bg,
-          borderRadius: "24px 24px 0 0",
-          maxHeight: "min(94dvh, 920px)",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-          border: `1px solid ${colors.greyLight || G.greyLight}`,
-          borderBottom: "none",
-          boxShadow: "0 -12px 40px rgba(0, 0, 0, 0.35)",
-        }}
+        className="sheet-panel scale-in ms-soft-sheet"
+        style={{ maxHeight: "min(94dvh, 920px)" }}
       >
-        <div
-          style={{
-            flexShrink: 0,
-            padding: "max(12px, env(safe-area-inset-top)) 16px 10px",
-            borderBottom: `1px solid ${colors.greyLight || G.greyLight}`,
-            background: colors.surface || G.surface,
-          }}
-        >
-          <div className="ms-sheet-handle" style={{ marginBottom: 12 }} />
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  color: colors.grey || G.grey,
-                }}
-              >
-                Séance passée
-              </div>
-              <div
-                style={{
-                  fontSize: 15,
-                  fontWeight: 700,
-                  color: colors.ink || G.ink,
-                  marginTop: 2,
-                  lineHeight: 1.3,
-                }}
-              >
+        <div className="ms-soft-sheet-head">
+          <div className="ms-sheet-handle" />
+          <div className="ms-soft-sheet-head-row">
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="ms-soft-sheet-eyebrow">Séance passée</div>
+              <div className="ms-soft-sheet-title" style={{ fontSize: 17 }}>
                 {statusLabel}
                 {session.distance ? ` · ${session.distance}` : ""}
               </div>
@@ -172,32 +138,14 @@ export default function HistorySessionSheet({
               type="button"
               onClick={onClose}
               aria-label="Fermer la séance passée"
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
-                border: `1px solid ${colors.greyLight || G.greyLight}`,
-                background: colors.greyXLight || G.greyXLight,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                flexShrink: 0,
-              }}
+              className="ms-soft-sheet-close"
             >
-              <X size={18} color={colors.ink || G.ink} />
+              <X size={18} color="currentColor" />
             </button>
           </div>
         </div>
 
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            WebkitOverflowScrolling: "touch",
-            padding: "16px 16px max(20px, env(safe-area-inset-bottom))",
-          }}
-        >
+        <div className="ms-soft-sheet-body">
           <WorkoutPrepView
             session={session}
             colors={colors}

@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Waves, Check, Flame, Trophy, Pencil, Camera, Trash2, X, AlertTriangle,
+  Check, Pencil, Camera, Trash2, X, AlertTriangle, ChevronLeft,
+  Volume2, CreditCard, LogOut, RotateCcw, ChevronRight, Mail, User,
+  Target, Waves, Package, HeartPulse, CalendarDays,
 } from "lucide-react";
 import { G } from "./theme/palette.js";
 import { FONT_DISPLAY } from "./theme/brand.js";
@@ -12,13 +14,30 @@ import {
   hydrateAvatarFromStorage,
   uploadAndPersistAvatar,
   removeAndPersistAvatar,
+  clearCachedAvatar,
 } from "./lib/avatar.js";
-import { computeStats, checkBadges } from "./lib/plan-stats.js";
+import {
+  playUiSound,
+  getUiSoundsEnabled,
+  setUiSoundsEnabled,
+} from "./lib/ui-sounds.js";
+import { PRICING } from "./lib/pricing.js";
+import { ACCOUNT_DELETE_WARNING } from "./lib/legal-copy.js";
+import LanguageSwitcher from "./i18n/LanguageSwitcher.jsx";
+import {
+  ProfileHelpSettingsRows,
+  ProfileSupportPanel,
+  ProfileLegalPanel,
+} from "./ProfileHelpPanels.jsx";
 import ProfileSection from "./ui/ProfileSection.jsx";
 import ConfirmSheet from "./sheets/ConfirmSheet.jsx";
-import { HomeBadgesSection } from "./Dashboard.jsx";
-import AppTopBar from "./app-shell/AppTopBar.jsx";
-import { AppShell } from "./app-shell/index.js";
+import SoftMistSheet from "./sheets/SoftMistSheet.jsx";
+import { PasswordInput } from "./AuthScreen.jsx";
+import { AppShell, AppTabShell } from "./app-shell/index.js";
+import {
+  isNewsletterOptedIn,
+  setNewsletterOptIn,
+} from "./lib/newsletter-opt-in.js";
 import {
   HEALTH_CONSENT_CHECKBOX,
   INJURY_ZONES,
@@ -32,7 +51,6 @@ import {
 import {
   BIRTH_MONTH_OPTIONS,
   GENDER_OPTIONS,
-  TRAINING_FOCUS_OPTIONS,
   computeAgeFromBirth,
   daysInBirthMonth,
 } from "./lib/swimmer-profile.js";
@@ -77,10 +95,29 @@ function natationPatch(draft, baseline) {
   return patch;
 }
 
-export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMenu, onTabChange, onEquipmentChange, onSwimmerProfileChange }) {
+export default function ProfileTab({
+  plan: _plan,
+  profile,
+  user,
+  onUserUpdate,
+  onTabChange,
+  onBack,
+  onEquipmentChange,
+  onSwimmerProfileChange,
+  isPremium = false,
+  onUpgrade,
+  onPortal,
+  onRefreshStatus,
+  onSignOut,
+  onDeleteAccount,
+  referralSlot = null,
+}) {
   const { t: to } = useTranslation("onboarding");
   const nameStorageKey = user?.id ? `myswym_firstname_${user.id}` : "myswym_firstname";
   const [msg, setMsg] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteErr, setDeleteErr] = useState(null);
+  const [soundsOn, setSoundsOn] = useState(() => getUiSoundsEnabled());
   const [draftEquipment, setDraftEquipment] = useState(() =>
     Array.isArray(profile?.equipment) ? [...profile.equipment] : []
   );
@@ -90,6 +127,10 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
   useEffect(() => {
     setDraftEquipment(Array.isArray(profile?.equipment) ? [...profile.equipment] : []);
   }, [profile?.equipment]);
+
+  useEffect(() => {
+    setSoundsOn(getUiSoundsEnabled());
+  }, []);
 
   useEffect(() => {
     setDraftNatation(snapshotNatation(profile));
@@ -120,9 +161,17 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
         || "";
     } catch { return ""; }
   });
-  const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput]   = useState(firstName);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  const [nameInput, setNameInput] = useState(firstName);
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [accountSheetOpen, setAccountSheetOpen] = useState(false);
+  const [newsletterOn, setNewsletterOn] = useState(() => isNewsletterOptedIn(user));
+  const [newsletterBusy, setNewsletterBusy] = useState(false);
+  const [pwdNew, setPwdNew] = useState("");
+  const [pwdConfirm, setPwdConfirm] = useState("");
+  const [pwdBusy, setPwdBusy] = useState(false);
+  const [pwdError, setPwdError] = useState(null);
+  const [pwdOk, setPwdOk] = useState(false);
+  const [helpPanel, setHelpPanel] = useState(null); // "support" | "legal" | null
   const [avatarBusy, setAvatarBusy] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -140,6 +189,10 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
     setAvatarUrl(next);
   }, [user?.id, user?.user_metadata?.firstname, user?.user_metadata?.avatar_url, avatarBusy]);
 
+  useEffect(() => {
+    setNewsletterOn(isNewsletterOptedIn(user));
+  }, [user?.id, user?.user_metadata?.newsletter_opt_in]);
+
   // Si metadata vide : retombe sur le fichier Storage et backfill (même compte, autre appareil)
   useEffect(() => {
     if (!user?.id || avatarBusy) return;
@@ -155,8 +208,87 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
     return () => { cancelled = true; };
   }, [user?.id, user?.user_metadata?.avatar_url, avatarBusy, onUserUpdate]);
 
-  const stats  = computeStats(plan);
-  const earned = checkBadges(stats);
+  const openEditProfile = () => {
+    playUiSound("soft");
+    const fallback = firstName
+      || user?.user_metadata?.full_name?.split(" ")[0]
+      || user?.email?.split("@")[0]
+      || "Nageur";
+    setNameInput(fallback);
+    setEditProfileOpen(true);
+  };
+
+  const openAccountSheet = () => {
+    playUiSound("soft");
+    setPwdNew("");
+    setPwdConfirm("");
+    setPwdError(null);
+    setPwdOk(false);
+    setNewsletterOn(isNewsletterOptedIn(user));
+    setAccountSheetOpen(true);
+  };
+
+  const closeAccountSheet = () => {
+    playUiSound("soft");
+    setAccountSheetOpen(false);
+    setPwdNew("");
+    setPwdConfirm("");
+    setPwdError(null);
+    setPwdOk(false);
+  };
+
+  const savePassword = async () => {
+    if (pwdNew.length < 6) {
+      setPwdError("Le mot de passe doit faire au moins 6 caractères.");
+      setPwdOk(false);
+      return;
+    }
+    if (pwdNew !== pwdConfirm) {
+      setPwdError("Les deux mots de passe ne correspondent pas.");
+      setPwdOk(false);
+      return;
+    }
+    setPwdError(null);
+    setPwdOk(false);
+    setPwdBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: pwdNew });
+      if (error) throw error;
+      setPwdNew("");
+      setPwdConfirm("");
+      setPwdOk(true);
+      playUiSound("success");
+      setMsg({ type: "ok", text: "Mot de passe mis à jour." });
+    } catch (e) {
+      setPwdError(e?.message || "Impossible de mettre à jour le mot de passe.");
+    } finally {
+      setPwdBusy(false);
+    }
+  };
+
+  const toggleNewsletter = async () => {
+    if (newsletterBusy) return;
+    const next = !newsletterOn;
+    setNewsletterBusy(true);
+    setNewsletterOn(next);
+    playUiSound("soft");
+    try {
+      const { user: updated, error } = await setNewsletterOptIn(next);
+      if (error) throw error;
+      if (updated && onUserUpdate) onUserUpdate(updated);
+      setMsg({
+        type: "ok",
+        text: next
+          ? "Tu es abonné aux newsletters."
+          : "Tu es désabonné des newsletters.",
+      });
+    } catch (e) {
+      setNewsletterOn(!next);
+      setMsg({ type: "err", text: e?.message || "Impossible d’enregistrer la préférence." });
+    } finally {
+      setNewsletterBusy(false);
+    }
+  };
 
   const saveName = () => {
     const v = nameInput.trim();
@@ -166,24 +298,24 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
         localStorage.setItem("myswym_firstname", v);
       } catch {}
       setFirstName(v);
-      // Sync cross-device via user_metadata
       supabase.auth.updateUser({ data: { firstname: v } })
         .then(({ data }) => { if (data?.user && onUserUpdate) onUserUpdate(data.user); })
         .catch(() => {});
     }
-    setEditingName(false);
+    setEditProfileOpen(false);
+    playUiSound("success");
+    setMsg({ type: "ok", text: "Profil mis à jour." });
+    setTimeout(() => setMsg(null), 2500);
   };
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
     e.target.value = "";
-    setAvatarMenuOpen(false);
 
     const previousUrl = avatarUrl;
     setAvatarBusy(true);
 
-    // Aperçu immédiat (data URL), ne remplace pas la persistance serveur
     try {
       const preview = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -211,7 +343,6 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
   const handleAvatarRemove = async () => {
     if (!user || avatarBusy) return;
     setAvatarBusy(true);
-    setAvatarMenuOpen(false);
     const previousUrl = avatarUrl;
     setAvatarUrl(null);
     try {
@@ -232,6 +363,10 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
   const goalLabel = findGoalById(profile?.goal)?.label
     || CATEGORIES.find(c => c.id === profile?.category)?.label
     || "Mon objectif";
+  const freqN = Math.max(0, Math.min(7, Number(profile?.sessionsPerWeek) || 0));
+  const programmeLabel = freqN > 0
+    ? `${freqN} séance${freqN > 1 ? "s" : ""}`
+    : "À définir";
 
   const profileDirty = natationDirty || equipmentDirty;
   const declaredInjuries = injuriesForUi(profile);
@@ -256,166 +391,185 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
   };
 
   return (
-    <div style={{
+    <AppTabShell style={{
       minHeight: "100dvh",
-      background: "transparent",
       paddingBottom: profileDirty
-        ? "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 96px)"
-        : "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)",
+        ? "calc(var(--safe-bottom) + 112px)"
+        : "calc(var(--safe-bottom) + 32px)",
     }}>
-      <AppTopBar
-        user={user}
-        onOpenMenu={onOpenMenu}
-        onAvatarClick={onTabChange ? () => onTabChange("profile") : undefined}
-        plan={plan}
-        onTabChange={onTabChange}
-      />
-      <AppShell>
-      {/* ── Profile Header ─────────────────────────────────────── */}
-      <div style={{ padding: "28px 0 24px", textAlign: "center" }}>
-        {/* Avatar, menu Ajouter / Modifier / Supprimer */}
-        <div style={{ position: "relative", display: "inline-block", marginBottom: 16 }}>
-          <button
-            type="button"
-            onClick={() => {
-              if (avatarBusy) return;
-              if (!avatarUrl) {
-                fileInputRef.current?.click();
-                return;
-              }
-              setAvatarMenuOpen(true);
-            }}
-            aria-label={avatarUrl ? "Gérer la photo de profil" : "Ajouter une photo de profil"}
-            style={{ border: "none", background: "none", cursor: avatarBusy ? "wait" : "pointer", padding: 0, display: "block", minWidth: 44, minHeight: 44, opacity: avatarBusy ? 0.7 : 1 }}
-          >
-            <div style={{
-              width: 90, height: 90, borderRadius: "50%",
-              background: avatarUrl ? "transparent" : `linear-gradient(135deg, ${G.blueMid} 0%, ${G.blue} 100%)`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 8px 32px rgba(142,179,255,0.35)",
-              border: "3px solid #fff", overflow: "hidden",
-            }}>
-              {avatarUrl
-                ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                : <span style={{ fontSize: 28, fontWeight: 800, color: "#fff" }}>{initials}</span>
-              }
-            </div>
-            <div style={{
-              position: "absolute", bottom: 2, right: 2,
-              width: 26, height: 26, borderRadius: "50%",
-              background: G.blue, border: "2.5px solid #fff",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              <Camera size={12} color="#fff" />
-            </div>
-          </button>
-          <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
-        </div>
+      {helpPanel === "support" ? (
+        <ProfileSupportPanel onBack={() => setHelpPanel(null)} />
+      ) : null}
+      {helpPanel === "legal" ? (
+        <ProfileLegalPanel onBack={() => setHelpPanel(null)} />
+      ) : null}
+      <AppShell style={helpPanel ? { display: "none" } : undefined}>
+      <header className="ms-profile-toolbar">
+        <button
+          type="button"
+          className="ms-glass-icon-btn"
+          aria-label="Retour"
+          onClick={() => {
+            playUiSound("soft");
+            if (onBack) onBack();
+            else onTabChange?.("home");
+          }}
+        >
+          <ChevronLeft size={22} color={G.ink} strokeWidth={2.25} />
+        </button>
+        <button
+          type="button"
+          className="ms-glass-icon-btn"
+          aria-label="Modifier le profil"
+          onClick={openEditProfile}
+        >
+          <Pencil size={16} color={G.ink} strokeWidth={2.25} />
+        </button>
+      </header>
 
-        {avatarMenuOpen && createPortal(
+      <div className="ms-profile-head">
+        <div className="ms-profile-head-avatar" aria-hidden>
+          <span className="ms-profile-head-avatar-media">
+            {avatarUrl
+              ? <img src={avatarUrl} alt="" />
+              : <span style={{ fontSize: 28, fontWeight: 800, color: G.blue }}>{initials}</span>}
+          </span>
+        </div>
+        <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/*" style={{ display: "none" }} onChange={handleAvatarChange} />
+        <h1 className="ms-profile-head-name">{String(displayName).toUpperCase()}</h1>
+        <p className="ms-profile-head-email">{user?.email || "Compte mySWYM"}</p>
+        <div className="ms-profile-meta" role="group" aria-label="Objectif, niveau et programme">
+          <div className="ms-profile-meta-item">
+            <span className="ms-profile-meta-kicker">Objectif</span>
+            <span className="ms-profile-meta-pill is-goal">
+              <Target size={13} strokeWidth={2.5} aria-hidden />
+              <span>{goalLabel}</span>
+            </span>
+          </div>
+          <div className="ms-profile-meta-item">
+            <span className="ms-profile-meta-kicker">Niveau</span>
+            <span className="ms-profile-meta-pill is-level">
+              <Waves size={13} strokeWidth={2.5} aria-hidden />
+              <span>{levelLabel}</span>
+            </span>
+          </div>
+          <div className="ms-profile-meta-item">
+            <span className="ms-profile-meta-kicker">Programme</span>
+            <span className="ms-profile-meta-pill is-programme">
+              <CalendarDays size={13} strokeWidth={2.5} aria-hidden />
+              <span>{programmeLabel}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {editProfileOpen && createPortal(
+        <div
+          className="ms-edit-profile-overlay"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              playUiSound("soft");
+              setEditProfileOpen(false);
+            }
+          }}
+        >
           <div
+            className="ms-edit-profile-modal scale-in"
             role="dialog"
             aria-modal="true"
-            aria-label="Photo de profil"
-            onClick={() => setAvatarMenuOpen(false)}
-            style={{
-              position: "fixed", inset: 0, zIndex: 400,
-              background: "rgba(15, 23, 42, 0.45)",
-              display: "flex", alignItems: "flex-end", justifyContent: "center",
-              padding: "16px 16px calc(16px + env(safe-area-inset-bottom, 0px))",
-              boxSizing: "border-box",
-            }}
+            aria-labelledby="edit-profile-title"
+            onClick={(e) => e.stopPropagation()}
           >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                width: "100%", maxWidth: 420, background: G.surface, borderRadius: 20,
-                border: `1px solid ${G.greyLight}`, overflow: "hidden",
-                boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
-              }}
-            >
-              <div style={{ padding: "16px 18px 10px", textAlign: "left" }}>
-                <div style={{ fontSize: 15, fontWeight: 700, fontFamily: FONT_DISPLAY, color: G.ink }}>Photo de profil</div>
-                <div style={{ fontSize: 13, color: G.grey, marginTop: 2 }}>Choisis une action</div>
-              </div>
+            <div className="ms-edit-profile-modal-head">
+              <h2 id="edit-profile-title">Modifier le profil</h2>
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", gap: 12,
-                  padding: "14px 18px", background: "none", border: "none", borderTop: `1px solid ${G.greyLight}`,
-                  cursor: "pointer", textAlign: "left", minHeight: 52,
+                className="ms-glass-icon-btn"
+                aria-label="Fermer"
+                onClick={() => {
+                  playUiSound("soft");
+                  setEditProfileOpen(false);
                 }}
+                style={{ width: 36, height: 36 }}
               >
-                <Camera size={18} color={G.blue} />
-                <span style={{ fontSize: 15, fontWeight: 600, color: G.ink }}>
-                  {avatarUrl ? "Modifier la photo" : "Ajouter une photo"}
+                <X size={16} strokeWidth={2.25} />
+              </button>
+            </div>
+
+            <div className="ms-edit-profile-photo">
+              <button
+                type="button"
+                className="ms-edit-profile-avatar"
+                onClick={() => {
+                  if (avatarBusy) return;
+                  playUiSound("soft");
+                  fileInputRef.current?.click();
+                }}
+                aria-label="Changer la photo"
+                style={{ opacity: avatarBusy ? 0.7 : 1, cursor: avatarBusy ? "wait" : "pointer" }}
+              >
+                <span className="ms-edit-profile-avatar-media">
+                  {avatarUrl
+                    ? <img src={avatarUrl} alt="" />
+                    : <span style={{ fontSize: 28, fontWeight: 800, color: G.blue }}>{initials}</span>}
+                </span>
+                <span className="ms-edit-profile-avatar-badge" aria-hidden>
+                  <Camera size={14} color="#fff" />
                 </span>
               </button>
-              {avatarUrl && (
-                <button
-                  type="button"
-                  onClick={handleAvatarRemove}
-                  style={{
-                    width: "100%", display: "flex", alignItems: "center", gap: 12,
-                    padding: "14px 18px", background: "none", border: "none", borderTop: `1px solid ${G.greyLight}`,
-                    cursor: "pointer", textAlign: "left", minHeight: 52,
-                  }}
-                >
-                  <Trash2 size={18} color={G.coral} />
-                  <span style={{ fontSize: 15, fontWeight: 600, color: G.coral }}>Supprimer la photo</span>
-                </button>
-              )}
               <button
                 type="button"
-                onClick={() => setAvatarMenuOpen(false)}
-                style={{
-                  width: "100%", padding: "14px 18px", background: G.greyXLight, border: "none",
-                  borderTop: `1px solid ${G.greyLight}`, cursor: "pointer",
-                  fontSize: 15, fontWeight: 700, color: G.grey, minHeight: 52,
+                className="ms-edit-profile-change-photo"
+                onClick={() => {
+                  if (avatarBusy) return;
+                  playUiSound("soft");
+                  fileInputRef.current?.click();
                 }}
               >
-                Annuler
+                Changer la photo
               </button>
+              {avatarUrl ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    playUiSound("soft");
+                    handleAvatarRemove();
+                  }}
+                  style={{
+                    marginTop: 6, border: "none", background: "none", cursor: "pointer",
+                    fontSize: 13, fontWeight: 600, color: G.coral,
+                  }}
+                >
+                  Supprimer la photo
+                </button>
+              ) : null}
             </div>
-          </div>,
-          document.body
-        )}
 
-        {/* Name, tappable pour éditer */}
-        {editingName ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", marginBottom: 8 }}>
-            <input
-              autoFocus
-              value={nameInput}
-              onChange={e => setNameInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && saveName()}
-              placeholder="Ton prénom"
-              style={{ fontSize: 20, fontWeight: 700, color: G.ink, border: "none", borderBottom: `2px solid ${G.blue}`, outline: "none", background: "transparent", textAlign: "center", width: 160 }}
-            />
-            <button type="button" onClick={saveName} style={{ background: G.blue, border: "none", borderRadius: 8, padding: "8px 12px", color: G.white, fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 44 }}>OK</button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => { setNameInput(displayName); setEditingName(true); }}
-            aria-label="Modifier le nom d’utilisateur"
-            style={{ background: "none", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 4, padding: 8, minHeight: 44 }}
-          >
-            <span style={{ fontSize: 22, fontWeight: 700, fontFamily: FONT_DISPLAY, color: G.ink, letterSpacing: "-0.03em" }}>{displayName}</span>
-            <div
-              aria-hidden
-              style={{ width: 20, height: 20, borderRadius: 6, background: G.blueLight, display: "flex", alignItems: "center", justifyContent: "center" }}
+            <label className="ms-edit-profile-field">
+              <span>Prénom</span>
+              <input
+                autoFocus
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && saveName()}
+                placeholder="Ton prénom"
+              />
+            </label>
+
+            <button
+              type="button"
+              className="ms-pill-cta"
+              style={{ width: "100%", minHeight: 52, marginTop: 8 }}
+              onClick={saveName}
+              disabled={avatarBusy}
             >
-              <Pencil size={11} color={G.blue} strokeWidth={2.4} />
-            </div>
-          </button>
-        )}
-        <div style={{ fontSize: 13, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
-          {levelLabel}
-        </div>
-        <div style={{ fontSize: 13, color: G.greyMid }}>{user?.email}</div>
-      </div>
+              Enregistrer
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       <div>
         {msg && (
@@ -424,53 +578,147 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
           </div>
         )}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-          {[
-            { Icon: Waves, value: `${(stats.totalMeters / 1000).toFixed(1)} km`, label: "Nagés", color: G.blue, bg: G.blueLight },
-            { Icon: Check, value: stats.totalSessions, label: "Séances", color: G.mint, bg: G.mintLight },
-            { Icon: Flame, value: stats.streak, label: "Série", color: G.coral, bg: G.coralLight },
-            { Icon: Trophy, value: earned.length, label: "Badges", color: G.gold, bg: G.goldLight },
-          ].map(({ Icon, value, label, color, bg }, i) => (
-            <div key={i} style={{ background: G.surface, borderRadius: 20, padding: "16px 14px", border: `1px solid ${G.greyLight}`, boxShadow: "0 2px 12px rgba(0,0,0,0.04)", display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 13, background: bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <Icon size={20} color={color} />
-              </div>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: G.ink, lineHeight: 1 }}>{value}</div>
-                <div style={{ fontSize: 12, color: G.grey, marginTop: 2 }}>{label}</div>
-              </div>
-            </div>
-          ))}
+        <div className="ms-profile-group-label">Informations du compte</div>
+        <div className="ms-profile-account-stack">
+          <button type="button" className="ms-profile-account-row" onClick={openEditProfile}>
+            <span className="ms-profile-settings-icon" style={{ background: "rgba(0,107,253,0.1)" }}>
+              <User size={18} color={G.blue} />
+            </span>
+            <span className="ms-profile-settings-label" style={{ flex: 1 }}>Prénom</span>
+            <span className="ms-profile-account-value">{displayName}</span>
+            <ChevronRight size={18} color={G.greyMid} />
+          </button>
+          <button type="button" className="ms-profile-account-row" onClick={openAccountSheet}>
+            <span className="ms-profile-settings-icon" style={{ background: "rgba(0,107,253,0.1)" }}>
+              <Mail size={18} color={G.blue} />
+            </span>
+            <span className="ms-profile-settings-label" style={{ flex: 1 }}>Email</span>
+            <span className="ms-profile-account-value" style={{ maxWidth: "46%" }}>
+              {user?.email || "-"}
+            </span>
+            <ChevronRight size={18} color={G.greyMid} />
+          </button>
         </div>
 
-        <ProfileSection
-          id="profile-goal"
-          title="Mon objectif"
-          summary={goalLabel}
-          defaultOpen={false}
+        <SoftMistSheet
+          open={accountSheetOpen}
+          onClose={closeAccountSheet}
+          title="Compte"
+          subtitle={user?.email || "Ton adresse e-mail"}
+          ariaLabel="Gérer le compte"
         >
-          <p style={{ fontSize: 13, color: G.grey, lineHeight: 1.45, margin: "0 0 12px" }}>
-            Change via « Nouveau plan » dans Programme.
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {[
-              { label: "Objectif", value: goalLabel },
-              profile?.eventDate ? { label: "Date", value: profile.eventDate } : null,
-              profile?.trainingFocus
-                ? { label: "Focus", value: TRAINING_FOCUS_OPTIONS.find((o) => o.id === profile.trainingFocus)?.label || profile.trainingFocus }
-                : null,
-            ].filter(Boolean).map((item) => (
-              <div key={item.label} style={{ background: G.greyXLight, borderRadius: 14, padding: "12px 12px" }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{item.label}</div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: G.ink, lineHeight: 1.35 }}>{item.value}</div>
+          <div className="ms-account-sheet">
+            <div className="ms-account-sheet-block">
+              <div className="ms-account-sheet-label">Adresse e-mail</div>
+              <div className="ms-account-sheet-email">{user?.email || "-"}</div>
+              <p className="ms-account-sheet-hint">
+                Contacte le support si tu dois changer d’adresse.
+              </p>
+            </div>
+
+            <div className="ms-account-sheet-block">
+              <div className="ms-account-sheet-label">Mot de passe</div>
+              {pwdError ? (
+                <div className="ms-account-sheet-alert is-err">{pwdError}</div>
+              ) : null}
+              {pwdOk ? (
+                <div className="ms-account-sheet-alert is-ok">Mot de passe mis à jour.</div>
+              ) : null}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <PasswordInput
+                  id="profile-pwd-new"
+                  label="Nouveau mot de passe"
+                  placeholder="Au moins 6 caractères"
+                  value={pwdNew}
+                  onChange={(e) => setPwdNew(e.target.value)}
+                  onEnter={savePassword}
+                  autoComplete="new-password"
+                />
+                <PasswordInput
+                  id="profile-pwd-confirm"
+                  label="Confirmer"
+                  placeholder="Retape le mot de passe"
+                  value={pwdConfirm}
+                  onChange={(e) => setPwdConfirm(e.target.value)}
+                  onEnter={savePassword}
+                  autoComplete="new-password"
+                />
               </div>
-            ))}
+              <button
+                type="button"
+                className="ms-pill-cta"
+                style={{ width: "100%", minHeight: 48, marginTop: 12 }}
+                onClick={savePassword}
+                disabled={pwdBusy || !pwdNew || !pwdConfirm}
+              >
+                {pwdBusy ? "…" : "Enregistrer le mot de passe"}
+              </button>
+            </div>
+
+            <div className="ms-account-sheet-block is-last">
+              <div className="ms-profile-settings-row" style={{ padding: 0, border: "none" }}>
+                <span className="ms-profile-settings-icon" style={{ background: "rgba(124, 107, 207, 0.12)" }}>
+                  <Mail size={18} color={G.purple} />
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="ms-profile-settings-label">Newsletters</div>
+                  <div className="ms-profile-settings-hint">
+                    Actus et conseils MySWYM par e-mail
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={newsletterOn}
+                  aria-busy={newsletterBusy}
+                  className={`ms-menu-switch${newsletterOn ? " is-on" : ""}`}
+                  onClick={toggleNewsletter}
+                  disabled={newsletterBusy}
+                >
+                  <span />
+                </button>
+              </div>
+            </div>
           </div>
-        </ProfileSection>
+        </SoftMistSheet>
+
+        <div className="ms-profile-group-label">Réglages</div>
+        <div className="ms-profile-settings-list">
+          <div className="ms-profile-settings-row">
+            <span className="ms-profile-settings-icon" style={{ background: "rgba(0,107,253,0.1)" }}>
+              <Volume2 size={18} color={G.blue} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="ms-profile-settings-label">Sons de l’app</div>
+              <div className="ms-profile-settings-hint">Retours sonores sur les boutons</div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={soundsOn}
+              className={`ms-menu-switch${soundsOn ? " is-on" : ""}`}
+              onClick={() => {
+                const next = !soundsOn;
+                setSoundsOn(next);
+                setUiSoundsEnabled(next);
+                if (next) playUiSound("success");
+              }}
+            >
+              <span />
+            </button>
+          </div>
+          <LanguageSwitcher variant="settings" />
+          <ProfileHelpSettingsRows
+            onOpenSupport={() => setHelpPanel("support")}
+            onOpenLegal={() => setHelpPanel("legal")}
+          />
+        </div>
+
+        <div className="ms-profile-group-label">Natation</div>
 
         {onSwimmerProfileChange && (
           <>
-            <ProfileSection id="profile-physique" title="Mon profil" summary="Âge, sexe, poids, taille" defaultOpen={false}>
+            <ProfileSection id="profile-physique" title="Mon profil" summary="Âge, sexe, poids, taille" icon={User} defaultOpen={false}>
               {(() => {
                 const nowY = new Date().getFullYear();
                 const birthMonth = profile?.birthMonth ?? "";
@@ -481,10 +729,6 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                     : ""
                 );
                 const dim = daysInBirthMonth(birthMonth, birthYear);
-                const fieldStyle = {
-                  width: "100%", boxSizing: "border-box", padding: "10px 12px", borderRadius: 12,
-                  border: `1.5px solid ${G.greyLight}`, background: G.greyXLight, fontSize: 14, fontWeight: 700, color: G.ink,
-                };
                 const patchBirth = (nextDay, nextMonth, nextYear) => {
                   const d = nextDay === "" ? "" : Number(nextDay);
                   const m = nextMonth === "" ? "" : Number(nextMonth);
@@ -505,7 +749,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                   <>
                     <div style={{ display: "grid", gridTemplateColumns: "0.7fr 1.3fr 0.9fr", gap: 8, marginBottom: 12 }}>
                       <label style={{ display: "block" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                        <div className="ms-profile-label">
                           {to("physique.day")}
                         </div>
                         <select
@@ -514,7 +758,8 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                             const raw = e.target.value;
                             patchBirth(raw === "" ? "" : Number(raw), birthMonth, birthYear);
                           }}
-                          style={{ ...fieldStyle, cursor: "pointer" }}
+                          className="ms-profile-field"
+                          style={{ cursor: "pointer" }}
                         >
                           <option value="">{to("physique.day")}</option>
                           {dayOpts.map((d) => (
@@ -523,7 +768,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                         </select>
                       </label>
                       <label style={{ display: "block" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                        <div className="ms-profile-label">
                           {to("physique.month")}
                         </div>
                         <select
@@ -532,7 +777,8 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                             const raw = e.target.value;
                             patchBirth(birthDay, raw === "" ? "" : Number(raw), birthYear);
                           }}
-                          style={{ ...fieldStyle, cursor: "pointer" }}
+                          className="ms-profile-field"
+                          style={{ cursor: "pointer" }}
                         >
                           <option value="">{to("physique.month")}</option>
                           {BIRTH_MONTH_OPTIONS.map((o) => (
@@ -541,7 +787,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                         </select>
                       </label>
                       <label style={{ display: "block" }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                        <div className="ms-profile-label">
                           {to("physique.year")}
                         </div>
                         <input
@@ -555,14 +801,14 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                             const raw = e.target.value;
                             patchBirth(birthDay, birthMonth, raw === "" ? "" : Number(raw));
                           }}
-                          style={fieldStyle}
+                          className="ms-profile-field"
                         />
                       </label>
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    <div className="ms-profile-label">
                       {to("physique.sexe")}
                     </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+                    <div className="ms-profile-choice-wrap">
                       {GENDER_OPTIONS.map((opt) => {
                         const active = profile?.gender === opt.id;
                         const labelKey = opt.id === "homme" ? "physique.sexeHomme" : "physique.sexeFemme";
@@ -571,16 +817,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                             key={opt.id}
                             type="button"
                             onClick={() => onSwimmerProfileChange({ gender: active ? "" : opt.id })}
-                            style={{
-                              padding: "8px 12px",
-                              borderRadius: 10,
-                              cursor: "pointer",
-                              fontSize: 13,
-                              fontWeight: 700,
-                              border: `1.5px solid ${active ? G.blue : G.greyLight}`,
-                              background: active ? G.blueLight : G.surface,
-                              color: active ? G.blue : G.ink,
-                            }}
+                            className={`ms-profile-choice${active ? " is-active" : ""}`}
                           >
                             {to(labelKey)}
                           </button>
@@ -593,7 +830,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                         { key: "heightCm", label: "Taille", placeholder: "cm" },
                       ].map(({ key, label, placeholder }) => (
                         <label key={key} style={{ display: "block" }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>{label}</div>
+                          <div className="ms-profile-label">{label}</div>
                           <input
                             type="number"
                             inputMode="numeric"
@@ -603,7 +840,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                               const raw = e.target.value;
                               onSwimmerProfileChange({ [key]: raw === "" ? "" : Number(raw) });
                             }}
-                            style={fieldStyle}
+                            className="ms-profile-field"
                           />
                         </label>
                       ))}
@@ -617,13 +854,14 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
               id="profile-natation"
               title="Ma natation"
               summary={`${Number(profile?.pool) === 50 ? "50 m" : "25 m"} · ${profile?.level || "niveau"} · ${profile?.sessionsPerWeek ? `${profile.sessionsPerWeek}×/sem` : "fréquence"}`}
+              icon={Waves}
               defaultOpen
             >
-              <p style={{ fontSize: 13, color: G.grey, lineHeight: 1.45, margin: "0 0 12px" }}>
+              <p className="ms-profile-hint">
                 Bassin et matériel calent les éducatifs. Le plan a été généré en 25 m, sans matériel, tant que tu ne changes rien ici.
               </p>
-              <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Niveau</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+              <div className="ms-profile-label">Niveau</div>
+              <div className="ms-profile-choice-wrap">
                 {levelsForPicker(profile?.level).map((l) => {
                   const active = draftNatation.level === l.id;
                   const blocked = isBeginnerBlockedForGoal(profile?.goal) && l.id === "régulier";
@@ -641,13 +879,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                           ...(implied ? { swimStyle: implied } : {}),
                         }));
                       }}
-                      style={{
-                        padding: "8px 12px", borderRadius: 10, cursor: blocked && !active ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 700,
-                        border: `1.5px solid ${active ? G.blue : G.greyLight}`,
-                        background: active ? G.blueLight : G.surface,
-                        color: blocked && !active ? G.grey : active ? G.blue : G.ink,
-                        opacity: blocked && !active ? 0.55 : 1,
-                      }}
+                      className={`ms-profile-choice${active ? " is-active" : ""}`}
                     >
                       {l.label}
                     </button>
@@ -655,12 +887,12 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                 })}
               </div>
               {isBeginnerBlockedForGoal(profile?.goal) ? (
-                <p style={{ fontSize: 12, color: G.grey, lineHeight: 1.4, margin: "-6px 0 14px" }}>
+                <p className="ms-profile-hint" style={{ marginTop: -6 }}>
                   {to("level.beginnerBlocked")}
                 </p>
               ) : null}
-              <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Bassin</div>
-              <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              <div className="ms-profile-label">Bassin</div>
+              <div className="ms-profile-choice-row">
                 {POOLS.map((p) => {
                   const active = Number(draftNatation.pool) === p.id;
                   return (
@@ -668,45 +900,76 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                       key={p.id}
                       type="button"
                       onClick={() => setDraftNatation((prev) => ({ ...prev, pool: p.id }))}
-                      style={{
-                        flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 700,
-                        border: `1.5px solid ${active ? G.blue : G.greyLight}`,
-                        background: active ? G.blueLight : G.surface,
-                        color: active ? G.blue : G.ink,
-                      }}
+                      className={`ms-profile-choice is-fill${active ? " is-active" : ""}`}
                     >
                       {p.label}
                     </button>
                   );
                 })}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Fréquence</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-                {FREQUENCIES.map((f) => {
-                  const active = Number(draftNatation.sessionsPerWeek) === f.id;
-                  return (
-                    <button
-                      key={f.id}
-                      type="button"
-                      onClick={() => setDraftNatation((prev) => ({ ...prev, sessionsPerWeek: f.id }))}
-                      style={{
-                        padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 700,
-                        border: `1.5px solid ${active ? G.blue : G.greyLight}`,
-                        background: active ? G.blueLight : G.surface,
-                        color: active ? G.blue : G.ink,
-                      }}
-                    >
-                      {f.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <div className="ms-profile-label">Fréquence</div>
+              {(() => {
+                const freqIds = FREQUENCIES.map((f) => f.id);
+                const minF = freqIds[0] ?? 1;
+                const maxF = freqIds[freqIds.length - 1] ?? 5;
+                const raw = Number(draftNatation.sessionsPerWeek);
+                const value = Number.isFinite(raw) && raw >= minF && raw <= maxF ? raw : minF;
+                const idx = Math.max(0, freqIds.indexOf(value));
+                const pct = freqIds.length > 1 ? (idx / (freqIds.length - 1)) * 100 : 0;
+                const meta = FREQUENCIES.find((f) => f.id === value) || FREQUENCIES[0];
+                return (
+                  <div className="ms-freq-gauge">
+                    <div className="ms-freq-gauge-value">
+                      {value}
+                      <span className="ms-freq-gauge-unit">× / semaine</span>
+                    </div>
+                    {meta?.desc ? (
+                      <div className="ms-freq-gauge-desc">{meta.desc}</div>
+                    ) : null}
+                    <div className="ms-freq-gauge-track-wrap">
+                      <div className="ms-freq-gauge-track" aria-hidden />
+                      <div
+                        className="ms-freq-gauge-fill"
+                        aria-hidden
+                        style={{ width: `calc((100% - 22px) * ${pct / 100})` }}
+                      />
+                      <input
+                        type="range"
+                        className="ms-distance-slider ms-freq-gauge-input"
+                        min={minF}
+                        max={maxF}
+                        step={1}
+                        value={value}
+                        onChange={(e) => {
+                          const next = Number(e.target.value);
+                          setDraftNatation((prev) => ({ ...prev, sessionsPerWeek: next }));
+                        }}
+                        aria-label="Séances par semaine"
+                        aria-valuemin={minF}
+                        aria-valuemax={maxF}
+                        aria-valuenow={value}
+                        aria-valuetext={meta?.label || `${value} fois par semaine`}
+                      />
+                    </div>
+                    <div className="ms-freq-gauge-ticks" aria-hidden>
+                      {FREQUENCIES.map((f) => (
+                        <span
+                          key={f.id}
+                          className={f.id === value ? "is-active" : undefined}
+                        >
+                          {f.id}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
               {!hidesFourNagesChoice({ ...profile, ...draftNatation }) && (
                 <>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  <div className="ms-profile-label">
                     Sais-tu nager du 4 nages ?
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div className="ms-profile-choice-row">
                     {SWIM_STYLES.map((s) => {
                       const active = (draftNatation.swimStyle || "crawl") === s.id;
                       return (
@@ -714,12 +977,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                           key={s.id}
                           type="button"
                           onClick={() => setDraftNatation((prev) => ({ ...prev, swimStyle: s.id }))}
-                          style={{
-                            flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 700,
-                            border: `1.5px solid ${active ? G.blue : G.greyLight}`,
-                            background: active ? G.blueLight : G.surface,
-                            color: active ? G.blue : G.ink,
-                          }}
+                          className={`ms-profile-choice is-fill${active ? " is-active" : ""}`}
                         >
                           {s.label}
                         </button>
@@ -769,19 +1027,13 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
           summary={Array.isArray(profile?.equipment) && profile.equipment.length > 0
             ? profile.equipment.map((id) => eqLabel(id)).join(" · ")
             : "Aucun matériel"}
+          icon={Package}
           defaultOpen={false}
         >
-          <p style={{ fontSize: 13, color: G.grey, lineHeight: 1.45, margin: "0 0 14px" }}>
+          <p className="ms-profile-hint">
             Coche ce que tu as au bord du bassin. On l’utilise seulement quand c’est utile, jamais de matos que tu n’as pas.
           </p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 8,
-              marginBottom: 12,
-            }}
-          >
+          <div className="ms-equip-grid">
             {EQUIPMENT_OPTS.map((o) => {
               const active = draftEquipment.includes(o.id);
               const imgSrc = EQUIPMENT_IMAGES[o.id];
@@ -793,34 +1045,9 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                   onClick={() => setDraftEquipment((prev) => (
                     active ? prev.filter((x) => x !== o.id) : [...prev, o.id]
                   ))}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "10px 12px",
-                    minHeight: 56,
-                    borderRadius: 14,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    border: `1.5px solid ${active ? G.blue : G.greyLight}`,
-                    background: active ? G.blueLight : G.greyXLight,
-                    color: active ? G.blue : G.ink,
-                    transition: "border-color 0.15s ease, background 0.15s ease",
-                  }}
+                  className={`ms-equip-tile${active ? " is-active" : ""}`}
                 >
-                  <span
-                    style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      background: active ? "rgba(0,107,253,0.14)" : G.surface,
-                      overflow: "hidden",
-                    }}
-                  >
+                  <span className="ms-equip-tile-thumb">
                     {imgSrc ? (
                       <img
                         src={imgSrc}
@@ -831,24 +1058,11 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                       />
                     ) : null}
                   </span>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, lineHeight: 1.25 }}>
+                  <span className="ms-equip-tile-label">
                     {eqLabel(o.id)}
                   </span>
-                  <span
-                    aria-hidden
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 7,
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      border: `1.5px solid ${active ? G.blue : G.greyLight}`,
-                      background: active ? G.blue : "transparent",
-                    }}
-                  >
-                    {active ? <Check size={13} color={G.white} strokeWidth={3} /> : null}
+                  <span aria-hidden className="ms-equip-tile-check">
+                    {active ? <Check size={13} color="#fff" strokeWidth={3} /> : null}
                   </span>
                 </button>
               );
@@ -858,19 +1072,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
             type="button"
             onClick={() => setDraftEquipment([])}
             disabled={draftEquipment.length === 0}
-            style={{
-              width: "100%",
-              padding: "11px 12px",
-              borderRadius: 12,
-              border: `1px solid ${draftEquipment.length === 0 ? G.blue : G.greyLight}`,
-              background: draftEquipment.length === 0 ? G.blueLight : "transparent",
-              color: draftEquipment.length === 0 ? G.blue : G.grey,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: draftEquipment.length === 0 ? "default" : "pointer",
-              opacity: draftEquipment.length === 0 ? 1 : 0.95,
-              minHeight: 44,
-            }}
+            className={`ms-equip-none${draftEquipment.length === 0 ? " is-active" : ""}`}
           >
             Aucun matériel
           </button>
@@ -886,10 +1088,11 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                 ? formatInjurySummary(profile)
                 : (profile?.injuryStatus === "aucune" ? "Aucune blessure" : "À compléter")
             }
+            icon={HeartPulse}
             defaultOpen={false}
           >
-            <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Blessure</div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <div className="ms-profile-label">Blessure</div>
+            <div className="ms-profile-choice-row">
               {[
                 { id: "aucune", label: "Aucune" },
                 { id: "oui", label: "Oui" },
@@ -906,12 +1109,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                         onSwimmerProfileChange({ injuryStatus: "oui" });
                       }
                     }}
-                    style={{
-                      flex: 1, padding: "10px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 700,
-                      border: `1.5px solid ${active ? G.blue : G.greyLight}`,
-                      background: active ? G.blueLight : G.surface,
-                      color: active ? G.blue : G.ink,
-                    }}
+                    className={`ms-profile-choice is-fill${active ? " is-active" : ""}`}
                   >
                     {o.label}
                   </button>
@@ -920,11 +1118,11 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
             </div>
             {profile?.injuryStatus === "oui" && (
               <>
-                <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Zones</div>
-                <p style={{ fontSize: 13, color: G.grey, lineHeight: 1.4, margin: "0 0 10px" }}>
+                <div className="ms-profile-label">Zones</div>
+                <p className="ms-profile-hint">
                   Tu peux en cocher plusieurs, chacune avec sa gravité. Le programme ne se réécrit pas tout seul, ça nous aide à mieux te connaître.
                 </p>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+                <div className="ms-profile-choice-wrap">
                   {INJURY_ZONES.map((z) => {
                     const active = declaredInjuries.some((i) => i.zone === z.id);
                     return (
@@ -932,12 +1130,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                         key={z.id}
                         type="button"
                         onClick={() => onSwimmerProfileChange(toggleInjuryZone(declaredInjuries, z.id))}
-                        style={{
-                          padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 700,
-                          border: `1.5px solid ${active ? G.blue : G.greyLight}`,
-                          background: active ? G.blueLight : G.surface,
-                          color: active ? G.blue : G.ink,
-                        }}
+                        className={`ms-profile-choice${active ? " is-active" : ""}`}
                       >
                         {z.label}
                       </button>
@@ -948,10 +1141,10 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                   const zoneLabel = INJURY_ZONES.find((z) => z.id === item.zone)?.label || item.zone;
                   return (
                     <div key={item.zone} style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                      <div className="ms-profile-label">
                         Gravité · {zoneLabel}
                       </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      <div className="ms-profile-choice-wrap">
                         {INJURY_SEVERITIES.map((s) => {
                           const active = item.severity === s.id;
                           return (
@@ -959,12 +1152,7 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
                               key={s.id}
                               type="button"
                               onClick={() => onSwimmerProfileChange(setInjurySeverity(declaredInjuries, item.zone, s.id))}
-                              style={{
-                                padding: "8px 12px", borderRadius: 10, cursor: "pointer", fontSize: 13, fontWeight: 700,
-                                border: `1.5px solid ${active ? G.blue : G.greyLight}`,
-                                background: active ? G.blueLight : G.surface,
-                                color: active ? G.blue : G.ink,
-                              }}
+                              className={`ms-profile-choice${active ? " is-active" : ""}`}
                             >
                               {s.label}
                             </button>
@@ -996,14 +1184,93 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
           </ProfileSection>
         )}
 
-        <ProfileSection
-          id="profile-badges"
-          title="Badges"
-          summary={`${earned.length} débloqué${earned.length > 1 ? "s" : ""}`}
-          defaultOpen={false}
-        >
-          <HomeBadgesSection plan={plan} />
-        </ProfileSection>
+        <div className="ms-profile-group-label">Compte</div>
+        <div className="ms-profile-settings-list" style={{ marginBottom: 16 }}>
+          <div className="ms-profile-settings-row" style={{ flexDirection: "column", alignItems: "stretch", gap: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <span className="ms-profile-settings-icon" style={{ background: G.goldLight }}>
+                <CreditCard size={18} color={G.gold} />
+              </span>
+              <div style={{ flex: 1 }}>
+                <div className="ms-profile-settings-label">Abonnement</div>
+                <div className="ms-profile-settings-hint">
+                  {isPremium ? "Premium actif" : "Essai ou découverte"}
+                </div>
+              </div>
+            </div>
+            {isPremium ? (
+              <button type="button" onClick={onPortal} className="ms-pill-cta ms-pill-cta-secondary" style={{ minHeight: 44 }}>
+                Gérer mon abonnement
+              </button>
+            ) : (
+              <button type="button" onClick={() => onUpgrade?.("profile")} className="ms-pill-cta" style={{ minHeight: 44 }}>
+                S’abonner : dès {PRICING.monthlyCommit.label}/mois
+              </button>
+            )}
+            {isPremium ? referralSlot : null}
+            <button
+              type="button"
+              onClick={() => {
+                playUiSound("soft");
+                onRefreshStatus?.();
+              }}
+              style={{
+                width: "100%", minHeight: 40, border: "none", background: "none",
+                color: G.grey, fontWeight: 600, cursor: "pointer",
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}
+            >
+              <RotateCcw size={14} /> Restaurer les achats
+            </button>
+          </div>
+        </div>
+
+        <div className="ms-profile-group-label">Zone sensible</div>
+        <div className="ms-profile-account-stack" style={{ marginBottom: 16 }}>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className="ms-profile-account-row"
+          >
+            <span className="ms-profile-settings-icon" style={{ background: "rgba(232,90,104,0.12)" }}>
+              <LogOut size={18} color={G.coral} />
+            </span>
+            <span className="ms-profile-settings-label" style={{ flex: 1, color: G.coral }}>Déconnexion</span>
+            <ChevronRight size={18} color={G.coral} />
+          </button>
+          {user && onDeleteAccount ? (
+            <button
+              type="button"
+              disabled={deleteBusy}
+              className="ms-profile-account-row"
+              onClick={async () => {
+                setDeleteErr(null);
+                const ok = window.confirm(
+                  `${ACCOUNT_DELETE_WARNING}\n\nConfirmer la suppression définitive du compte ?`,
+                );
+                if (!ok) return;
+                setDeleteBusy(true);
+                try {
+                  await onDeleteAccount();
+                } catch (e) {
+                  setDeleteErr(e?.message || "Suppression impossible.");
+                  setDeleteBusy(false);
+                }
+              }}
+            >
+              <span className="ms-profile-settings-icon" style={{ background: "rgba(232,90,104,0.12)" }}>
+                <Trash2 size={18} color={G.coral} />
+              </span>
+              <span className="ms-profile-settings-label" style={{ flex: 1, color: G.coral }}>
+                {deleteBusy ? "Suppression…" : "Supprimer mon compte"}
+              </span>
+              <ChevronRight size={18} color={G.coral} />
+            </button>
+          ) : null}
+          {deleteErr ? (
+            <div style={{ padding: "0 4px 4px", fontSize: 12, color: G.coral }}>{deleteErr}</div>
+          ) : null}
+        </div>
       </div>
       </AppShell>
 
@@ -1013,38 +1280,42 @@ export default function ProfileTab({ plan, profile, user, onUserUpdate, onOpenMe
             position: "fixed",
             left: 0,
             right: 0,
-            bottom: "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift))",
+            bottom: 0,
             zIndex: 90,
-            padding: "10px max(16px, env(safe-area-inset-left)) 10px max(16px, env(safe-area-inset-right))",
-            background: "rgba(6, 16, 31, 0.92)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            borderTop: `1px solid ${G.greyLight}`,
-            boxShadow: "0 -8px 28px rgba(0,0,0,0.28)",
+            padding: "12px max(16px, env(safe-area-inset-left)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-right))",
+            background: "rgba(247, 251, 255, 0.88)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            borderTop: "1px solid rgba(15,27,45,0.08)",
+            boxShadow: "0 -12px 32px rgba(15, 60, 120, 0.1)",
           }}
         >
-          <div className="app-shell" style={{ display: "flex", gap: 8, maxWidth: "var(--app-max)", margin: "0 auto" }}>
+          <div className="app-shell" style={{ display: "flex", gap: 10, maxWidth: "var(--app-max)", margin: "0 auto" }}>
             <button
               type="button"
-              onClick={resetDirtyDrafts}
-              style={{
-                flex: 1, padding: "14px 12px", borderRadius: 12, border: `1px solid ${G.greyLight}`,
-                background: G.surface, fontSize: 14, fontWeight: 600, color: G.grey, cursor: "pointer", minHeight: 48,
+              onClick={() => {
+                playUiSound("soft");
+                resetDirtyDrafts();
               }}
+              className="ms-pill-cta ms-pill-cta-secondary"
+              style={{ flex: 1 }}
             >
               Annuler
             </button>
             <button
               type="button"
-              onClick={handleStickySave}
-              className="ms-app-btn"
-              style={{ flex: 1.4, margin: 0, boxShadow: "0 8px 24px rgba(0, 107, 253, 0.28)" }}
+              onClick={() => {
+                playUiSound("success");
+                handleStickySave();
+              }}
+              className="ms-pill-cta"
+              style={{ flex: 1.5 }}
             >
               Enregistrer
             </button>
           </div>
         </div>
       )}
-    </div>
+    </AppTabShell>
   );
 }
