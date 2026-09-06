@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 
 /**
  * Bottom sheet soft mist partagé (tips séance, éducatifs, popups app).
+ * `fullscreenMobile` : quasi plein écran sous 640px (prep séance).
  */
 export default function SoftMistSheet({
   open = true,
@@ -16,6 +17,9 @@ export default function SoftMistSheet({
   className = "",
   bodyClassName = "",
   lockScroll = true,
+  zIndex = null,
+  dismissOnOverlay = true,
+  fullscreenMobile = false,
 }) {
   useEffect(() => {
     if (!open || !lockScroll) return undefined;
@@ -35,15 +39,33 @@ export default function SoftMistSheet({
 
   if (!open) return null;
 
+  const overlayClass = [
+    "sheet-overlay",
+    "ms-soft-overlay",
+    fullscreenMobile ? "ms-soft-overlay--fullscreen" : "",
+    className,
+  ].filter(Boolean).join(" ");
+
+  const panelClass = [
+    "sheet-panel",
+    "scale-in",
+    "ms-soft-sheet",
+    fullscreenMobile ? "ms-soft-sheet--fullscreen" : "",
+  ].filter(Boolean).join(" ");
+
   return createPortal(
     <div
-      className={`sheet-overlay ms-soft-overlay ${className}`.trim()}
+      className={overlayClass}
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel || title || "Dialogue"}
-      onClick={(e) => e.target === e.currentTarget && onClose?.()}
+      style={zIndex != null ? { zIndex } : undefined}
+      onClick={(e) => {
+        if (!dismissOnOverlay || !onClose) return;
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="sheet-panel scale-in ms-soft-sheet">
+      <div className={panelClass}>
         <div className="ms-soft-sheet-head">
           <div className="ms-sheet-handle" />
           <div className="ms-soft-sheet-head-row">

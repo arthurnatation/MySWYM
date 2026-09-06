@@ -252,9 +252,9 @@ export default function TarifsPage() {
                 setAcceptWithdrawal(v);
                 setCheckoutError("");
               }}
-              ink="#f4f8fa"
-              muted="#9bb0c8"
-              linkColor="#74b4ff"
+              ink="#0f1b2d"
+              muted="#4a5d72"
+              linkColor="#006bfd"
             />
           </div>
         </section>

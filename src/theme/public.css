@@ -614,8 +614,9 @@ body:has(.ms-root) {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: rgba(244, 248, 250, 0.55);
+  color: var(--ms-muted);
   font-size: 0.875rem;
+  font-weight: 500;
   text-decoration: none;
 }
 
@@ -664,14 +665,13 @@ body:has(.ms-root) {
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
-  opacity: 0.55;
 }
 
 .ms-footer-apps .ms-footer-heading {
   font-size: 0.7rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgba(155, 176, 200, 0.65);
+  color: var(--ms-muted);
 }
 
 .ms-footer-store {
@@ -680,11 +680,10 @@ body:has(.ms-root) {
   gap: 0.7rem;
   min-height: 48px;
   padding: 0.45rem 0.9rem;
-  border: 1px solid rgba(155, 176, 200, 0.22);
+  border: 1px solid var(--ms-border);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ms-secondary) 70%, transparent);
-  color: rgba(155, 176, 200, 0.72);
-  opacity: 0.72;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--ms-fg);
   pointer-events: none;
   user-select: none;
   max-width: 13.5rem;
@@ -692,7 +691,7 @@ body:has(.ms-root) {
 
 .ms-footer-store-icon {
   display: inline-flex;
-  color: rgba(155, 176, 200, 0.8);
+  color: var(--ms-fg);
 }
 
 .ms-footer-store-copy {
@@ -706,11 +705,13 @@ body:has(.ms-root) {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--ms-muted);
 }
 
 .ms-footer-store-name {
   font-size: 0.875rem;
   font-weight: 600;
+  color: var(--ms-fg);
 }
 
 .ms-footer-bottom {
@@ -719,7 +720,7 @@ body:has(.ms-root) {
   gap: 1rem;
   margin-top: 2.25rem;
   padding-top: 1.25rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--ms-border);
 }
 
 @media (min-width: 768px) {
@@ -745,7 +746,7 @@ body:has(.ms-root) {
   padding: 0;
   border: none;
   background: none;
-  color: rgba(244, 248, 250, 0.85);
+  color: var(--ms-muted);
   font-family: inherit;
   font-size: 0.8125rem;
   font-weight: 500;
@@ -789,7 +790,7 @@ body:has(.ms-root) {
 
 .ms-footer-copy {
   margin: 0.85rem 0 0;
-  color: rgba(155, 176, 200, 0.45);
+  color: var(--ms-muted);
   font-size: 0.75rem;
 }
 
@@ -1115,7 +1116,7 @@ body:has(.ms-root) {
   padding: 0.75rem 0.9rem;
   border-radius: 0.75rem;
   background: rgba(232, 93, 76, 0.12);
-  color: #ffb4a8;
+  color: #b42318;
   font-size: 0.875rem;
   line-height: 1.5;
 }

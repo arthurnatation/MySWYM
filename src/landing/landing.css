@@ -391,7 +391,7 @@ body:has(.lp-root) {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(158, 200, 245, 0.18) 0%, rgba(244, 248, 252, 0.08) 32%, rgba(244, 248, 252, 0.42) 68%, var(--lp-bg) 100%);
+    linear-gradient(180deg, rgba(158, 200, 245, 0.12) 0%, rgba(244, 248, 252, 0.05) 22%, rgba(244, 248, 252, 0.55) 58%, rgba(244, 248, 252, 0.92) 82%, var(--lp-bg) 100%);
 }
 
 .lp-hero-inner {
@@ -406,13 +406,12 @@ body:has(.lp-root) {
 .lp-hero-copy {
   max-width: 42rem;
   order: 2;
-  padding: 1.15rem 1.25rem 1.25rem;
-  border-radius: 1.5rem;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--lp-glass-border);
-  box-shadow: var(--lp-glass-shadow);
-  backdrop-filter: blur(22px) saturate(1.25);
-  -webkit-backdrop-filter: blur(22px) saturate(1.25);
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .lp-hero-phones {
@@ -442,8 +441,8 @@ body:has(.lp-root) {
 
   .lp-hero-bg::after {
     background:
-      linear-gradient(90deg, rgba(244, 248, 252, 0.72) 0%, rgba(244, 248, 252, 0.22) 48%, rgba(244, 248, 252, 0.06) 100%),
-      linear-gradient(180deg, rgba(158, 200, 245, 0.16) 0%, rgba(244, 248, 252, 0.28) 58%, var(--lp-bg) 100%);
+      linear-gradient(90deg, rgba(244, 248, 252, 0.88) 0%, rgba(244, 248, 252, 0.45) 42%, rgba(244, 248, 252, 0.08) 72%, transparent 100%),
+      linear-gradient(180deg, rgba(158, 200, 245, 0.12) 0%, rgba(244, 248, 252, 0.18) 55%, var(--lp-bg) 100%);
   }
 
   .lp-hero-inner {
@@ -517,6 +516,7 @@ body:has(.lp-root) {
   font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.2;
+  color: var(--lp-fg);
   text-wrap: balance;
 }
 
@@ -532,7 +532,7 @@ body:has(.lp-root) {
   max-width: 36rem;
   font-size: 0.9375rem;
   line-height: 1.6;
-  color: var(--lp-muted);
+  color: #3d4f63;
   text-wrap: pretty;
 }
 
@@ -586,13 +586,13 @@ body:has(.lp-root) {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.5rem 0.75rem;
   margin: 0.35rem 0 0;
-  padding: 1rem 0.85rem;
-  border-radius: 1.15rem;
-  border: 1px solid var(--lp-glass-border);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: var(--lp-glass-shadow);
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   text-align: center;
 }
 
@@ -606,8 +606,9 @@ body:has(.lp-root) {
 .lp-stats dd {
   margin: 0.35rem 0 0;
   font-size: 0.75rem;
+  font-weight: 600;
   line-height: 1.4;
-  color: var(--lp-muted);
+  color: #3d4f63;
   overflow-wrap: anywhere;
 }
 

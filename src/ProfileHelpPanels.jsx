@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, CircleHelp, Mail, Bug, ExternalLink, Info, Globe } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleHelp, Mail, Bug, ExternalLink, Info, Globe, Star } from "lucide-react";
 import { G } from "./theme/palette.js";
 import { legalHref } from "./lib/legal-copy.js";
 import { getStoredLanguage } from "./i18n/index.js";
@@ -151,6 +151,13 @@ export function ProfileSupportPanel({ onBack }) {
             onBack();
             openSupportChat("messages");
           }}
+        />
+        <HelpRow
+          icon={Star}
+          title="Donner son avis"
+          subtitle="Partage ton retour sur MySWYM"
+          href={`${withLocalePrefix("/avis", locale)}#write`}
+          external
         />
       </div>
 

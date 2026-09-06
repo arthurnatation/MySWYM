@@ -409,6 +409,8 @@ export default function AnalyseTab({
                 <MonAllureCard
                   profile={profile}
                   pace100={profile?.pace100}
+                  pace50={profile?.pace50}
+                  pace400={profile?.pace400}
                   isPremium={isPremium}
                   onSave={onPaceUpdate}
                   onUpgrade={onUpgrade}

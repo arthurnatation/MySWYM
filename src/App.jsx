@@ -98,7 +98,6 @@ import {
 } from "./lib/swim-pace.js";
 import PyramidBlockViz, { parsePyramidLine } from "./PyramidBlockViz.jsx";
 import WorkoutPrepView from "./workout/WorkoutPrepView.jsx";
-import { buildWorkoutView } from "./lib/workout-display.js";
 import { toCoachDetailLines } from "./lib/sports-engine/coach-restitution.js";
 import { prettifySessionDetailLine } from "./lib/sports-engine/session-labels.js";
 
@@ -153,6 +152,7 @@ import HomeBlogCarousel from "./HomeBlogCarousel.jsx";
 import FeedbackModal from "./sheets/FeedbackModal.jsx";
 import SessionFeedbackSheet from "./sheets/SessionFeedbackSheet.jsx";
 import PlanReadySheet from "./sheets/PlanReadySheet.jsx";
+import SessionPrepSheet from "./sheets/SessionPrepSheet.jsx";
 import UpgradeModal from "./sheets/UpgradeModal.jsx";
 import ConfirmSheet from "./sheets/ConfirmSheet.jsx";
 import CancelSurveySheet from "./sheets/CancelSurveySheet.jsx";
@@ -1136,9 +1136,11 @@ function appendPaceHistory(profile, { pace100, week, source = "manual" }) {
   return { ...profile, paceHistory: hist };
 }
 
-/** Bloc unique : T100 + zones utiles + projection 2/5 ans. */
-const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
-  const [val, setVal] = useState(pace100 || null);
+/** Bloc unique : T50 / T100 / T400 + zones utiles + projection 2/5 ans. */
+const MonAllureCard = ({ profile, pace100, pace50 = null, pace400 = null, isPremium, onSave, onUpgrade }) => {
+  const [val100, setVal100] = useState(pace100 || null);
+  const [val50, setVal50] = useState(pace50 || null);
+  const [val400, setVal400] = useState(pace400 || null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -1146,13 +1148,18 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
   const isDiscovery = profile?.level === "découverte" || profile?.level === "beginner";
 
   useEffect(() => {
-    setVal(pace100 || null);
+    setVal100(pace100 || null);
+    setVal50(pace50 || null);
+    setVal400(pace400 || null);
     setSaved(false);
-  }, [pace100]);
+  }, [pace100, pace50, pace400]);
 
-  const activePace = val || pace100 || null;
-  const hasChange = val !== (pace100 || null);
-  const canSave = isPremium && !!val && hasChange && !saving;
+  const activePace = val100 || pace100 || null;
+  const hasChange =
+    val100 !== (pace100 || null)
+    || val50 !== (pace50 || null)
+    || val400 !== (pace400 || null);
+  const canSave = isPremium && hasChange && !saving;
   const zoneMult = appZoneMultForT100(activePace);
   const fmtZone = (s) => `${Math.floor(s / 60)}'${String(Math.round(s % 60)).padStart(2, "0")}"`;
 
@@ -1160,7 +1167,11 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
     if (!canSave) return;
     setSaving(true);
     try {
-      await Promise.resolve(onSave?.(val));
+      await Promise.resolve(onSave?.({
+        pace100: val100,
+        pace50: val50,
+        pace400: val400,
+      }));
       setSaved(true);
     } finally {
       setSaving(false);
@@ -1190,6 +1201,26 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
     evolSvg = { SVG_W, SVG_H, xOf, yOf, projPts, startPace, endPace, gainSec, gainPct, paceAt2, paceAt5 };
   }
 
+  const lockedPaceBtn = (placeholder, aria) => (
+    <button
+      type="button"
+      onClick={onUpgrade}
+      aria-label={aria}
+      style={{
+        display: "block", width: "100%", boxSizing: "border-box",
+        padding: "14px 12px", fontSize: 22,
+        fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif", fontWeight: 700,
+        textAlign: "center", letterSpacing: "0.06em",
+        border: `2px solid ${G.greyLight}`,
+        borderRadius: 14, outline: "none",
+        background: G.greyXLight, color: G.greyMid,
+        cursor: "pointer", opacity: 0.9,
+      }}
+    >
+      {placeholder}
+    </button>
+  );
+
   return (
     <div className="fade-up" style={{
       background: G.surface,
@@ -1209,7 +1240,7 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
             type="button"
             onClick={() => setInfoOpen((o) => !o)}
             aria-expanded={infoOpen}
-            aria-label={infoOpen ? "Masquer l’aide T100" : "Pourquoi et comment renseigner le T100"}
+            aria-label={infoOpen ? "Masquer l’aide allures" : "Pourquoi et comment renseigner les temps"}
             style={{
               width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
               border: `1px solid ${G.blueMid}55`,
@@ -1233,47 +1264,61 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
         }}>
           <p style={{ margin: "0 0 8px" }}>
             <strong style={{ color: G.ink }}>Pourquoi&nbsp;?</strong>{" "}
-            Ton meilleur 100&nbsp;m crawl (T100) calibre zones, allures et projection.
+            Le 100&nbsp;m (T100) calibre zones et séances. Les 50 et 400&nbsp;m aident à mieux te situer (on les branchera ensuite).
           </p>
           <p style={{ margin: 0 }}>
             <strong style={{ color: G.ink }}>Comment&nbsp;?</strong>{" "}
-            100&nbsp;m crawl, départ dans l’eau, note ton meilleur temps.
+            Crawl, départ dans l’eau, note ton meilleur temps sur chaque distance.
           </p>
         </div>
       )}
 
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
-          Meilleur temps 100 m
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+            Meilleur temps 50 m
+          </div>
+          {isPremium ? (
+            <PaceInput
+              placeholder="0:42"
+              value={val50}
+              onChange={(v) => { setVal50(v); setSaved(false); }}
+              maxLen={3}
+              minSec={18}
+              maxSec={150}
+            />
+          ) : lockedPaceBtn("0:42", "Débloquer le temps au 50 m avec Premium")}
         </div>
-        {isPremium ? (
-          <PaceInput
-            placeholder="1:45"
-            value={val}
-            onChange={(v) => { setVal(v); setSaved(false); }}
-            maxLen={3}
-            minSec={45}
-            maxSec={5 * 60}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={onUpgrade}
-            aria-label="Débloquer le temps au 100 m avec Premium"
-            style={{
-              display: "block", width: "100%", boxSizing: "border-box",
-              padding: "14px 12px", fontSize: 22,
-              fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif", fontWeight: 700,
-              textAlign: "center", letterSpacing: "0.06em",
-              border: `2px solid ${G.greyLight}`,
-              borderRadius: 14, outline: "none",
-              background: G.greyXLight, color: G.greyMid,
-              cursor: "pointer", opacity: 0.9,
-            }}
-          >
-            1:45
-          </button>
-        )}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+            Meilleur temps 100 m
+          </div>
+          {isPremium ? (
+            <PaceInput
+              placeholder="1:45"
+              value={val100}
+              onChange={(v) => { setVal100(v); setSaved(false); }}
+              maxLen={3}
+              minSec={45}
+              maxSec={5 * 60}
+            />
+          ) : lockedPaceBtn("1:45", "Débloquer le temps au 100 m avec Premium")}
+        </div>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+            Meilleur temps 400 m
+          </div>
+          {isPremium ? (
+            <PaceInput
+              placeholder="7:30"
+              value={val400}
+              onChange={(v) => { setVal400(v); setSaved(false); }}
+              maxLen={4}
+              minSec={200}
+              maxSec={20 * 60}
+            />
+          ) : lockedPaceBtn("7:30", "Débloquer le temps au 400 m avec Premium")}
+        </div>
       </div>
 
       {isPremium ? (
@@ -1297,12 +1342,14 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
           </button>
           {saved && (
             <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 600, color: G.mint, textAlign: "center" }}>
-              Temps enregistré, tes prochaines séances s’adaptent.
+              Temps enregistrés. Le T100 adapte tes prochaines séances.
             </p>
           )}
           {!saved && pace100 && !hasChange && (
             <p style={{ margin: "0 0 12px", fontSize: 12, color: G.grey, textAlign: "center" }}>
               Actif : {secToDisplay(pace100)} /100&nbsp;m
+              {pace50 ? ` · ${secToDisplay(pace50)} /50 m` : ""}
+              {pace400 ? ` · ${secToDisplay(pace400)} /400 m` : ""}
             </p>
           )}
         </>
@@ -4095,7 +4142,7 @@ const SessionBlock = ({ detail, index, workIndex, accent, children = null }) => 
 // ── SESSION CARD ──────────────────────────────────────────────────────────
 const SessionCard = ({
   session, weekIndex, sessionIndex, onComplete, onShare, onEditFeedback,
-  defaultExpanded = false, isPremium = false, onUpgrade, hideCheckbox = false,
+  isPremium = false, onUpgrade, hideCheckbox = false,
   analyticsCtx = null,
   displayTitle = null,
 }) => {
@@ -4106,15 +4153,13 @@ const SessionCard = ({
   const titleShown = displayTitle || session.title;
   const [showTooltip, setShowTooltip] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [prepOpen, setPrepOpen] = useState(false);
   const [poolOpen, setPoolOpen] = useState(false);
   const viewedRef = useRef(false);
   const startedRef = useRef(false);
   const intensity = parseIntensity(session.intensity);
   const details = expandCompoundDetailLines(session.details || []);
   const detailGroups = groupSessionDetails(details);
-  const workoutPreview = buildWorkoutView(session);
-  const phaseCount = workoutPreview.sections?.length || 0;
   const blockCount = detailGroups.reduce((n, g) => {
     if (g.type === "block") return n + 1;
     if (g.type === "work") return n + g.lines.length;
@@ -4152,11 +4197,6 @@ const SessionCard = ({
       volume: props.volume,
     }, { onceKey: `session_started:${sessionOnceBase}` });
   };
-
-  useEffect(() => {
-    if (defaultExpanded) emitSessionViewed();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleCheckboxClick = (e) => {
     e.stopPropagation();
@@ -4306,7 +4346,7 @@ const SessionCard = ({
               </span>
             )}
           </div>
-          {!locked && intensity.cue && !expanded && (
+          {!locked && intensity.cue && (
             <p style={{ fontSize: 12, color: G.grey, marginTop: 8, lineHeight: 1.4, marginBottom: 0 }}>
               {intensity.cue.charAt(0).toUpperCase() + intensity.cue.slice(1)}
             </p>
@@ -4374,43 +4414,47 @@ const SessionCard = ({
             </button>
           ) : (
             <>
-          <button
-            type="button"
-            className={`ms-session-expand${expanded ? " is-open" : ""}`}
-            onClick={() => {
-              setExpanded((v) => {
-                const next = !v;
-                if (next) emitSessionViewed();
-                return next;
-              });
-            }}
-          >
-            <span>{expanded ? "Masquer le détail" : phaseCount >= 2 ? `${phaseCount} phases` : `${blockCount} bloc${blockCount > 1 ? "s" : ""}`}</span>
-            {expanded ? <ChevronUp size={14} color="currentColor" /> : <ChevronDown size={14} color="currentColor" />}
-          </button>
-          {expanded && (
-            <div className="ms-session-detail">
-              <WorkoutPrepView
-                session={session}
-                colors={G}
-                accent={{ bg: tm.bg, color: tm.color }}
-                isPremium={isPremium}
-                embedded
-                showStart={!resolved}
-                profile={analyticsCtx?.profile || null}
-                planId={analyticsCtx?.planId || null}
-                whyLine={null}
-                onUpgrade={() => onUpgrade?.("session_locked")}
-                onTooHard={undefined}
-                onStart={() => {
-                  if (!isPremium) {
-                    onUpgrade?.("session_locked");
-                    return;
+          <div className="ms-session-card-cta" style={{ padding: "0 16px 16px" }}>
+            <button
+              type="button"
+              className="ms-pill-cta"
+              onClick={() => {
+                emitSessionViewed();
+                setPrepOpen(true);
+              }}
+            >
+              {resolved ? "Voir la séance" : "Préparer la séance"}
+            </button>
+          </div>
+          <SessionPrepSheet
+            open={prepOpen}
+            session={session}
+            colors={G}
+            accent={{ bg: tm.bg, color: tm.color }}
+            isPremium={isPremium}
+            profile={analyticsCtx?.profile || null}
+            planId={analyticsCtx?.planId || null}
+            showStart={!resolved}
+            onClose={() => setPrepOpen(false)}
+            onUpgrade={() => onUpgrade?.("session_locked")}
+            onTooHard={
+              !resolved && isPremium
+                ? () => {
+                    setPrepOpen(false);
+                    onEditFeedback?.(weekIndex, sessionIndex);
                   }
-                  emitSessionStarted();
-                  setPoolOpen(true);
-                }}
-              />
+                : undefined
+            }
+            onStart={() => {
+              if (!isPremium) {
+                onUpgrade?.("session_locked");
+                return;
+              }
+              emitSessionStarted();
+              setPrepOpen(false);
+              setPoolOpen(true);
+            }}
+            exportBar={(
               <div style={{ marginTop: 14 }}>
                 <SessionExportBar
                   session={session}
@@ -4419,8 +4463,8 @@ const SessionCard = ({
                   onShare={onShare}
                 />
               </div>
-            </div>
-          )}
+            )}
+          />
           {poolOpen && (
             <Suspense fallback={null}><PoolMode
               session={session}
@@ -4430,7 +4474,7 @@ const SessionCard = ({
               onClose={() => setPoolOpen(false)}
               onFinish={() => {
                 setPoolOpen(false);
-                if (!resolved && isPremium) onComplete?.("done");
+                if (!resolved && isPremium) onComplete?.(weekIndex, sessionIndex, "done");
               }}
               onTooHard={
                 !resolved && isPremium
@@ -4576,7 +4620,6 @@ const WeekCard = ({ week, weekIndex, onComplete, onShare, onEditFeedback, isCurr
               onEditFeedback={onEditFeedback}
               isPremium={isPremium}
               onUpgrade={onUpgrade}
-              defaultExpanded={isCurrentWeek && i === week.sessions.findIndex(x => !isSessionResolved(x))}
               analyticsCtx={analyticsCtx ? {
                 ...analyticsCtx,
                 planWeek: week?.number ?? weekIndex + 1,
@@ -10105,28 +10148,41 @@ export default function App() {
     setFeedbackWeek(null);
   };
 
-  const handlePaceUpdate = (newPace100) => {
+  const handlePaceUpdate = (patchOrPace100) => {
     if (!activePlanEntry) return;
     if (!canUpdateProgram) {
       openUpgrade("trial_expired");
       return Promise.resolve();
     }
+    const patch =
+      patchOrPace100 && typeof patchOrPace100 === "object"
+        ? patchOrPace100
+        : { pace100: patchOrPace100 };
     const week = getCurrentWeekNumber(activePlanEntry.plan);
     const fromPace =
       Number(activePlanEntry.profile?.pace100) > 0
         ? Number(activePlanEntry.profile.pace100)
         : null;
-    const toPace = Number(newPace100) > 0 ? Number(newPace100) : null;
+    const nextPace100 =
+      patch.pace100 !== undefined ? patch.pace100 : activePlanEntry.profile?.pace100;
+    const toPace = Number(nextPace100) > 0 ? Number(nextPace100) : null;
     let nextProfile = {
       ...activePlanEntry.profile,
-      pace100: newPace100,
+      ...(patch.pace100 !== undefined ? { pace100: patch.pace100 } : {}),
+      ...(patch.pace50 !== undefined ? { pace50: patch.pace50 } : {}),
+      ...(patch.pace400 !== undefined ? { pace400: patch.pace400 } : {}),
     };
-    delete nextProfile.pace400;
-    nextProfile = appendPaceHistory(nextProfile, {
-      pace100: newPace100,
-      week,
-      source: "manual",
-    });
+    if (
+      patch.pace100 !== undefined &&
+      Number(patch.pace100) > 0 &&
+      Number(patch.pace100) !== Number(activePlanEntry.profile?.pace100)
+    ) {
+      nextProfile = appendPaceHistory(nextProfile, {
+        pace100: patch.pace100,
+        week,
+        source: "manual",
+      });
+    }
 
     // Recalcule D… / @… sur les séances déjà là (sans régénérer le contenu).
     let nextPlan = activePlanEntry.plan;
@@ -10341,7 +10397,6 @@ export default function App() {
       sessionsPerWeek: newFreq,
       ...(newPace100 !== undefined ? { pace100: newPace100 } : {}),
     };
-    delete newProfile.pace400;
     if (newPace100 !== undefined) {
       newProfile = appendPaceHistory(newProfile, {
         pace100: newPace100,

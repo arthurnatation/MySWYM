@@ -7,11 +7,10 @@ import { G } from "./theme/palette.js";
 import SessionHeroCard from "./SessionHeroCard.jsx";
 import Btn from "./ui/Btn.jsx";
 import AllureUnlockSheet from "./sheets/AllureUnlockSheet.jsx";
-import SessionPrepSheet from "./sheets/SessionPrepSheet.jsx";
 import TrialCountdownBanner from "./ui/TrialCountdownBanner.jsx";
 import CoachCard from "./CoachCard.jsx";
-import { track, sessionAnalyticsProps } from "./lib/analytics.js";
-import { findNextSession, sessionCardModel, sessionWhyLine } from "./lib/plan-reveal.js";
+import { track } from "./lib/analytics.js";
+import { findNextSession, sessionCardModel } from "./lib/plan-reveal.js";
 import {
   hasSeenAllureUnlockTip,
   shouldShowAllureUnlockTip,
@@ -64,11 +63,9 @@ export default function Dashboard({
 }) {
   const {
     AppTopBar,
-    getTypeMeta,
   } = getTabUi();
   const stats = computeStats(plan);
   const isLoop = !!plan?.isSessionLoop;
-  const [homePrepOpen, setHomePrepOpen] = useState(false);
   const [allureTipDismissed, setAllureTipDismissed] = useState(() => hasSeenAllureUnlockTip(user?.id));
   const next = findNextSession(plan);
   const preview = next?.session ? sessionCardModel(next.session) : null;
@@ -107,33 +104,9 @@ export default function Dashboard({
     || "Nageur";
 
   const planFinished = !isLoop && stats.totalSessions >= stats.planTotal && stats.planTotal > 0;
-  const tm = getTypeMeta(next?.session?.type);
   const coachWeek = plan?.weeks?.length
     ? Math.max(0, plan.weeks.findIndex((w) => !(w.sessions || []).every(isSessionResolved)))
     : 0;
-
-  const startToday = () => {
-    if (!next?.session || next.resolved) {
-      onTabChange?.("plan");
-      return;
-    }
-    if (!isPremium) {
-      onUpgrade?.("session_locked");
-      return;
-    }
-    const props = sessionAnalyticsProps(profile, next.session, {
-      planWeek: (plan?.weeks?.[next.weekIndex]?.number) ?? next.weekIndex + 1,
-      sessionIndex: next.sessionIndex,
-    });
-    track("session_started", {
-      level: props.level,
-      objective: props.objective,
-      planWeek: props.planWeek,
-      sessionIndex: props.sessionIndex,
-      volume: props.volume,
-    }, { onceKey: `session_started:${activePlanId || "plan"}:${next.weekIndex}:${next.sessionIndex}` });
-    setHomePrepOpen(true);
-  };
 
   return (
     <div
@@ -220,14 +193,12 @@ export default function Dashboard({
                 type="button"
                 className="ms-pill-cta"
                 onClick={() => {
-                  playUiSound(next.resolved ? "soft" : "tap");
-                  startToday();
+                  playUiSound("soft");
+                  onTabChange?.("plan");
                 }}
                 style={{ fontFamily: FONT }}
               >
-                {next.resolved
-                  ? "Voir le programme"
-                  : (isPremium ? "Préparer la séance" : "S’abonner pour nager")}
+                Voir le programme
               </button>
             </SessionHeroCard>
           </div>
@@ -271,46 +242,6 @@ export default function Dashboard({
             }
           </div>
         )}
-
-        {plan && (
-          <button
-            type="button"
-            onClick={() => {
-              playUiSound("soft");
-              onTabChange?.("plan");
-            }}
-            style={{
-              width: "100%", marginTop: 8, minHeight: 44, border: "none", background: "none",
-              color: G.grey, fontSize: 14, fontWeight: 600, cursor: "pointer",
-            }}
-          >
-            Voir le programme
-          </button>
-        )}
-
-        <SessionPrepSheet
-          open={homePrepOpen && !!next?.session && !next.resolved}
-          session={next?.session}
-          colors={G}
-          accent={{ bg: tm.bg, color: tm.color }}
-          isPremium={isPremium}
-          profile={profile}
-          planId={activePlanId}
-          whyLine={next?.session ? sessionWhyLine(next.session, profile) : null}
-          onClose={() => setHomePrepOpen(false)}
-          onUpgrade={onUpgrade}
-          onTooHard={
-            isPremium
-              ? () => {
-                  setHomePrepOpen(false);
-                  onEditFeedback?.(next.weekIndex, next.sessionIndex);
-                }
-              : () => {
-                  setHomePrepOpen(false);
-                  onUpgrade?.("feedback_adjust");
-                }
-          }
-        />
 
         {showAllureTip && (
           <AllureUnlockSheet

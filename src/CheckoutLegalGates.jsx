@@ -23,9 +23,9 @@ export default function CheckoutLegalGates({
   onAcceptTerms,
   acceptWithdrawal,
   onAcceptWithdrawal,
-  ink = "#191c1e",
-  muted = "#5d5e61",
-  linkColor = "#154388",
+  ink = "#0f1b2d",
+  muted = "#4a5d72",
+  linkColor = "#006bfd",
   idPrefix = "checkout-legal",
 }) {
   const termsId = `${idPrefix}-terms`;

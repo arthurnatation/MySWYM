@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Check, Zap } from "lucide-react";
+import { Check } from "lucide-react";
 import { G } from "../theme/palette.js";
 import Btn from "../ui/Btn.jsx";
+import SoftMistSheet from "./SoftMistSheet.jsx";
 import CheckoutLegalGates, { checkoutGatesReady, checkoutGatesError } from "../CheckoutLegalGates.jsx";
 import { supabase } from "../supabase.js";
 import { PRICING, PRICING_SUMMARY_FR, priceIdForPlan } from "../lib/pricing.js";
@@ -16,7 +17,16 @@ const PREMIUM_LINES_ACTIVE = [
   "Projection d’allures · plans complets · vidéos technique",
 ];
 
-export default function UpgradeModal ({ onClose, weeksBlocked, softContext = null, trialEligible = true, planWeeks = 0, canDismiss = true }) {
+const MUTED = "#4a5d72";
+
+export default function UpgradeModal({
+  onClose,
+  weeksBlocked,
+  softContext = null,
+  trialEligible = true,
+  planWeeks = 0,
+  canDismiss = true,
+}) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
   const [period, setPeriod] = useState("monthly_flex");
@@ -35,7 +45,6 @@ export default function UpgradeModal ({ onClose, weeksBlocked, softContext = nul
   }, [legalReady]);
 
   const hasReferral = Boolean(resolveReferralCode(user));
-  // Essai 7j = à l’inscription (sans carte), pas via Stripe Checkout.
   const showTrialOffer = false;
   const isAnnual = period === "annual";
   const isCommit = period === "monthly_commit";
@@ -71,7 +80,11 @@ export default function UpgradeModal ({ onClose, weeksBlocked, softContext = nul
     if (!session) throw new Error("Connecte-toi d'abord.");
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${fnName}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}`, "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
       body: JSON.stringify(body),
     });
     return res.json();
@@ -84,7 +97,8 @@ export default function UpgradeModal ({ onClose, weeksBlocked, softContext = nul
       setErr(gateError);
       return;
     }
-    setLoading(true); setErr(null);
+    setLoading(true);
+    setErr(null);
     try {
       const priceId = selectedPriceId;
       const referralCode = resolveReferralCode(user);
@@ -98,14 +112,20 @@ export default function UpgradeModal ({ onClose, weeksBlocked, softContext = nul
         priceId,
         ...(referralCode ? { referralCode } : {}),
       });
-      if (json.url) { window.location.href = json.url; return; }
+      if (json.url) {
+        window.location.href = json.url;
+        return;
+      }
       if (json.alreadySubscribed) {
         setErr(json.error || "Tu as déjà un abonnement en cours.");
         setLoading(false);
         return;
       }
       throw new Error(json.error || "Lien de paiement introuvable");
-    } catch (e) { setErr(e.message || "Erreur."); setLoading(false); }
+    } catch (e) {
+      setErr(e.message || "Erreur.");
+      setLoading(false);
+    }
   };
 
   const ctaLabel = isAnnual
@@ -118,157 +138,251 @@ export default function UpgradeModal ({ onClose, weeksBlocked, softContext = nul
           ? "Démarrer : −20% parrainage"
           : `Démarrer : ${PRICING.monthlyFlex.label}/mois`;
 
+  const planBtn = (id, label, commitment, price, suffix) => {
+    const active = period === id;
+    return (
+      <button
+        type="button"
+        onClick={() => setPeriod(id)}
+        style={{
+          width: "100%",
+          padding: "12px 14px",
+          borderRadius: 14,
+          cursor: "pointer",
+          textAlign: "left",
+          border: `1.5px solid ${active ? G.blue : G.greyLight}`,
+          background: active ? G.blueLight : G.surface,
+          position: "relative",
+          minHeight: 56,
+        }}
+      >
+        {hasReferral && id === "monthly_flex" && active ? (
+          <div
+            style={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              background: G.mint,
+              color: G.white,
+              fontSize: 10,
+              fontWeight: 800,
+              padding: "2px 7px",
+              borderRadius: 6,
+            }}
+          >
+            −20%
+          </div>
+        ) : null}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+          <div>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: active ? G.blue : MUTED,
+                letterSpacing: "0.04em",
+              }}
+            >
+              {label}
+            </div>
+            <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{commitment}</div>
+          </div>
+          <div
+            style={{
+              fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+              fontSize: 22,
+              fontWeight: 800,
+              color: G.ink,
+            }}
+          >
+            {price}
+            <span style={{ fontSize: 13, fontWeight: 600, color: MUTED }}>{suffix}</span>
+          </div>
+        </div>
+      </button>
+    );
+  };
+
   return (
-    <div
-      className="sheet-overlay"
-      onClick={e => canDismiss && e.target === e.currentTarget && onClose()}
-      style={{ zIndex: 500 }}
+    <SoftMistSheet
+      open
+      eyebrow="Premium"
+      title={headline}
+      subtitle={subtitle}
+      onClose={canDismiss ? onClose : undefined}
+      dismissOnOverlay={canDismiss}
+      zIndex={500}
+      ariaLabel="Abonnement Premium"
+      bodyClassName="ms-soft-sheet-body--tall"
     >
-      <div className="sheet-panel ms-sheet-card scale-in">
-        <div className="ms-sheet-handle" />
-        <div style={{ textAlign: "center", marginBottom: 22, paddingTop: 4 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: G.blue, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px" }}>
-            <Zap size={24} color={G.white} />
-          </div>
-          <h3 style={{ fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif", fontSize: 28, fontWeight: 700, letterSpacing: "-0.03em", textTransform: "none", color: G.ink, marginBottom: 8 }}>
-            {headline}
-          </h3>
-          <p style={{ color: G.grey, fontSize: 14, lineHeight: 1.6 }}>{subtitle}</p>
-          <p style={{ color: G.greyMid, fontSize: 12, marginTop: 10, lineHeight: 1.45 }}>
-            {PRICING_SUMMARY_FR} · résiliation via le portail Stripe
-          </p>
-        </div>
+      <p style={{ color: MUTED, fontSize: 12, margin: "0 0 14px", lineHeight: 1.45 }}>
+        {PRICING_SUMMARY_FR} · résiliation via le portail Stripe
+      </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-          <button type="button" onClick={() => setPeriod("monthly_flex")} style={{
-            width: "100%", padding: "12px 14px", borderRadius: 12, cursor: "pointer", textAlign: "left",
-            border: `1.5px solid ${period === "monthly_flex" ? G.blue : G.greyLight}`,
-            background: period === "monthly_flex" ? G.blueLight : G.surface,
-            position: "relative",
-            minHeight: 56,
-          }}>
-            {hasReferral && period === "monthly_flex" && (
-              <div style={{
-                position: "absolute", top: 8, right: 8,
-                background: G.mint, color: G.white,
-                fontSize: 10, fontWeight: 800, padding: "2px 7px", borderRadius: 6,
-              }}>−20%</div>
-            )}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: period === "monthly_flex" ? G.blue : G.grey, letterSpacing: "0.04em" }}>MENSUEL</div>
-                <div style={{ fontSize: 12, color: G.greyMid, marginTop: 2 }}>{PRICING.monthlyFlex.commitmentFr}</div>
-              </div>
-              <div style={{ fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif", fontSize: 22, fontWeight: 800, color: G.ink }}>
-                {PRICING.monthlyFlex.label}<span style={{ fontSize: 13, fontWeight: 600, color: G.grey }}> /mois</span>
-              </div>
-            </div>
-          </button>
-
-          <button type="button" onClick={() => setPeriod("monthly_commit")} style={{
-            width: "100%", padding: "12px 14px", borderRadius: 12, cursor: "pointer", textAlign: "left",
-            border: `1.5px solid ${period === "monthly_commit" ? G.blue : G.greyLight}`,
-            background: period === "monthly_commit" ? G.blueLight : G.surface,
-            minHeight: 56,
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: period === "monthly_commit" ? G.blue : G.grey, letterSpacing: "0.04em" }}>MENSUEL 12 MOIS</div>
-                <div style={{ fontSize: 12, color: G.greyMid, marginTop: 2 }}>{PRICING.monthlyCommit.commitmentFr}</div>
-              </div>
-              <div style={{ fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif", fontSize: 22, fontWeight: 800, color: G.ink }}>
-                {PRICING.monthlyCommit.label}<span style={{ fontSize: 13, fontWeight: 600, color: G.grey }}> /mois</span>
-              </div>
-            </div>
-          </button>
-
-          <button type="button" onClick={() => setPeriod("annual")} style={{
-            width: "100%", padding: "12px 14px", borderRadius: 12, cursor: "pointer", textAlign: "left",
-            border: `1.5px solid ${period === "annual" ? G.blue : G.greyLight}`,
-            background: period === "annual" ? G.blueLight : G.surface,
-            minHeight: 56,
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: period === "annual" ? G.blue : G.grey, letterSpacing: "0.04em" }}>ANNUEL</div>
-                <div style={{ fontSize: 12, color: G.greyMid, marginTop: 2 }}>{PRICING.annual.commitmentFr}</div>
-              </div>
-              <div style={{ fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif", fontSize: 22, fontWeight: 800, color: G.ink }}>
-                {PRICING.annual.label}<span style={{ fontSize: 13, fontWeight: 600, color: G.grey }}> /an</span>
-              </div>
-            </div>
-          </button>
-        </div>
-
-        {showTrialOffer && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: G.blueLight, border: `1px solid ${G.greyLight}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: G.blue, lineHeight: 1.4, textAlign: "center" }}>
-              7 jours offerts sans carte à l’inscription · ensuite tes séances se mettent en pause
-            </span>
-          </div>
-        )}
-
-        {isCommit && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: G.goldLight, border: `1px solid ${G.greyLight}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: G.gold, lineHeight: 1.45, textAlign: "center" }}>
-              {PRICING.monthlyCommit.label}/mois pendant 12 mois · pas de remboursement ni de fin anticipée avant la fin (hors cas légaux)
-            </span>
-          </div>
-        )}
-
-        {isAnnual && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: G.goldLight, border: `1px solid ${G.greyLight}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: G.gold, lineHeight: 1.45, textAlign: "center" }}>
-              {PRICING.annual.label} facturés une fois · pas de remboursement au prorata hors cas légaux
-            </span>
-          </div>
-        )}
-
-        {hasReferral && (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", background: G.mintLight, border: `1px solid ${G.greyLight}`, borderRadius: 10, padding: "10px 14px", marginBottom: 16 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: G.mint }}>Parrainage actif : −20% auto au paiement</span>
-          </div>
-        )}
-
-        {!hasReferral && (
-          <p style={{ fontSize: 12, color: G.greyMid, textAlign: "center", marginBottom: 16, lineHeight: 1.4 }}>
-            Un ami t’a parrainé ? −20% auto au paiement.
-          </p>
-        )}
-
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 10 }}>
-            Inclus avec Premium
-          </div>
-          {premiumLines.map((line, i) => (
-            <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: i < premiumLines.length - 1 ? 8 : 0 }}>
-              <Check size={14} color={G.blue} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span style={{ fontSize: 13, color: G.ink, lineHeight: 1.4 }}>{line}</span>
-            </div>
-          ))}
-        </div>
-
-        <CheckoutLegalGates
-          acceptTerms={acceptTerms}
-          onAcceptTerms={handleAcceptTerms}
-          acceptWithdrawal={acceptWithdrawal}
-          onAcceptWithdrawal={handleAcceptWithdrawal}
-          ink={G.ink}
-          muted={G.inkLight}
-          linkColor={G.blueMid}
-          idPrefix="upgrade-modal-legal"
-        />
-
-        {err && <div style={{ background: G.coralLight, borderRadius: 10, padding: "10px 14px", marginBottom: 12, color: G.coral, fontSize: 13 }}>{err}</div>}
-        <Btn variant="blue" onClick={handleCheckout} disabled={loading}>
-          {loading ? "Redirection…" : ctaLabel}
-        </Btn>
-        {canDismiss && (
-          <button type="button" onClick={onClose} style={{ width: "100%", marginTop: 10, padding: "12px", background: "none", border: "none", color: G.grey, cursor: "pointer", fontSize: 13 }}>
-            Retour
-          </button>
-        )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+        {planBtn("monthly_flex", "MENSUEL", PRICING.monthlyFlex.commitmentFr, PRICING.monthlyFlex.label, " /mois")}
+        {planBtn("monthly_commit", "MENSUEL 12 MOIS", PRICING.monthlyCommit.commitmentFr, PRICING.monthlyCommit.label, " /mois")}
+        {planBtn("annual", "ANNUEL", PRICING.annual.commitmentFr, PRICING.annual.label, " /an")}
       </div>
-    </div>
+
+      {showTrialOffer ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: G.blueLight,
+            border: `1px solid ${G.greyLight}`,
+            borderRadius: 12,
+            padding: "10px 14px",
+            marginBottom: 16,
+          }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, color: G.blue, lineHeight: 1.4, textAlign: "center" }}>
+            7 jours offerts sans carte à l’inscription · ensuite tes séances se mettent en pause
+          </span>
+        </div>
+      ) : null}
+
+      {isCommit ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: G.goldLight,
+            border: `1px solid ${G.greyLight}`,
+            borderRadius: 12,
+            padding: "10px 14px",
+            marginBottom: 16,
+          }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, color: G.gold, lineHeight: 1.45, textAlign: "center" }}>
+            {PRICING.monthlyCommit.label}/mois pendant 12 mois · pas de remboursement ni de fin anticipée avant
+            la fin (hors cas légaux)
+          </span>
+        </div>
+      ) : null}
+
+      {isAnnual ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: G.goldLight,
+            border: `1px solid ${G.greyLight}`,
+            borderRadius: 12,
+            padding: "10px 14px",
+            marginBottom: 16,
+          }}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, color: G.gold, lineHeight: 1.45, textAlign: "center" }}>
+            {PRICING.annual.label} facturés une fois · pas de remboursement au prorata hors cas légaux
+          </span>
+        </div>
+      ) : null}
+
+      {hasReferral ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: G.mintLight,
+            border: `1px solid ${G.greyLight}`,
+            borderRadius: 12,
+            padding: "10px 14px",
+            marginBottom: 16,
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: G.mint }}>
+            Parrainage actif : −20% auto au paiement
+          </span>
+        </div>
+      ) : (
+        <p style={{ fontSize: 12, color: MUTED, textAlign: "center", marginBottom: 16, lineHeight: 1.4 }}>
+          Un ami t’a parrainé ? −20% auto au paiement.
+        </p>
+      )}
+
+      <div style={{ marginBottom: 16 }}>
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: MUTED,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            marginBottom: 10,
+          }}
+        >
+          Inclus avec Premium
+        </div>
+        {premiumLines.map((line, i) => (
+          <div
+            key={line}
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
+              marginBottom: i < premiumLines.length - 1 ? 8 : 0,
+            }}
+          >
+            <Check size={14} color={G.blue} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span style={{ fontSize: 13, color: G.ink, lineHeight: 1.4 }}>{line}</span>
+          </div>
+        ))}
+      </div>
+
+      <CheckoutLegalGates
+        acceptTerms={acceptTerms}
+        onAcceptTerms={handleAcceptTerms}
+        acceptWithdrawal={acceptWithdrawal}
+        onAcceptWithdrawal={handleAcceptWithdrawal}
+        ink={G.ink}
+        muted={MUTED}
+        linkColor={G.blue}
+        idPrefix="upgrade-modal-legal"
+      />
+
+      {err ? (
+        <div
+          style={{
+            background: G.coralLight,
+            borderRadius: 10,
+            padding: "10px 14px",
+            marginBottom: 12,
+            color: G.coral,
+            fontSize: 13,
+          }}
+        >
+          {err}
+        </div>
+      ) : null}
+      <Btn variant="blue" onClick={handleCheckout} disabled={loading}>
+        {loading ? "Redirection…" : ctaLabel}
+      </Btn>
+      {canDismiss ? (
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            width: "100%",
+            marginTop: 10,
+            padding: "12px",
+            background: "none",
+            border: "none",
+            color: MUTED,
+            cursor: "pointer",
+            fontSize: 13,
+            minHeight: 44,
+            fontWeight: 600,
+          }}
+        >
+          Retour
+        </button>
+      ) : null}
+    </SoftMistSheet>
   );
 }
