@@ -647,6 +647,7 @@ export default function Landing() {
     document.documentElement.style.colorScheme = "light";
 
     const scrollToTarget = () => {
+      if (showBoot) return;
       const hash = window.location.hash?.replace("#", "");
       if (!hash) return;
       requestAnimationFrame(() => {
@@ -663,27 +664,30 @@ export default function Landing() {
       document.body.style.background = prevBg;
       document.documentElement.style.colorScheme = prevScheme;
     };
-  }, [t, i18n.language, pathname]);
+  }, [t, i18n.language, pathname, showBoot]);
 
   return (
     <>
-      {showBoot ? <PublicLoading /> : null}
-    <div className="lp-root">
-      <PublicNav />
-      <main>
-        <Hero />
-        <Objectives />
-        <WhyMyswym />
-        <SessionPreview />
-        <CoachSection />
-        <Includes />
-        <LandingReviews />
-        <FAQ />
-        <FinalCta />
-      </main>
-      <Footer />
-      <StickyCta revealOnScroll />
-    </div>
+      {showBoot ? (
+        <PublicLoading />
+      ) : (
+        <div className="lp-root">
+          <PublicNav />
+          <main>
+            <Hero />
+            <Objectives />
+            <WhyMyswym />
+            <SessionPreview />
+            <CoachSection />
+            <Includes />
+            <LandingReviews />
+            <FAQ />
+            <FinalCta />
+          </main>
+          <Footer />
+          <StickyCta revealOnScroll />
+        </div>
+      )}
     </>
   );
 }

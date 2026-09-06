@@ -2,7 +2,7 @@
  * Usage : node src/lib/boot-warm.test.js
  */
 import assert from "node:assert/strict";
-import { hasPersistedAuth, isBootWarm, markBootWarm, remainingColdBootMs, remainingLandingBootMs, isAppShellPath, BOOT_WARM_KEY, BOOT_POSE_MS, LANDING_BOOT_MS } from "./boot-warm.js";
+import { hasPersistedAuth, isBootWarm, markBootWarm, remainingColdBootMs, remainingLandingBootMs, isAppShellPath, isAppGifPath, BOOT_WARM_KEY, BOOT_POSE_MS, LANDING_BOOT_MS } from "./boot-warm.js";
 
 function memoryStore(init = {}) {
   const data = { ...init };
@@ -53,5 +53,10 @@ assert.equal(remainingLandingBootMs({ elapsed: 0, seen: true }), 0, "landing ski
 assert.equal(isAppShellPath("/app"), true, "app shell");
 assert.equal(isAppShellPath("/fr"), false, "landing is public");
 assert.equal(isAppShellPath("/connexion"), true, "auth is app");
+assert.equal(isAppGifPath("/app"), true, "gif on app");
+assert.equal(isAppGifPath("/app/foo"), true, "gif on app nested");
+assert.equal(isAppGifPath("/connexion"), false, "no gif on auth");
+assert.equal(isAppGifPath("/admin"), false, "no gif on admin");
+assert.equal(isAppGifPath("/fr"), false, "no gif on landing");
 
 console.log("boot-warm.test.js ok");

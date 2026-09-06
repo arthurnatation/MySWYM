@@ -13,7 +13,12 @@ const BUILD_LINES = [
   "Construction des phases…",
   "Personnalisation des séances…",
 ];
-const BUILD_LINE_MS = 450;
+const BUILD_LINE_MS = 900;
+
+function prefersReducedMotion() {
+  return typeof window !== "undefined"
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 export default function PlanRevealView({
   phase = "building",
@@ -30,6 +35,7 @@ export default function PlanRevealView({
     if (phase === "ready") return undefined;
     markBootWarm();
     setLineIdx(0);
+    if (prefersReducedMotion()) return undefined;
     const id = window.setInterval(() => {
       setLineIdx((i) => Math.min(i + 1, BUILD_LINES.length - 1));
     }, BUILD_LINE_MS);
@@ -44,16 +50,22 @@ export default function PlanRevealView({
         ) : null}
 
         {phase !== "ready" || !model ? (
-          <div className="ms-plan-reveal-building" role="status" aria-live="polite" aria-busy="true">
+          <div
+            className="ms-plan-reveal-building"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+            aria-labelledby="ms-plan-reveal-build-title"
+          >
             <BootMark />
             <img
               className="myswym-boot-wordmark myswym-boot-wordmark--static"
               src="/logo-myswym-banner-blanc.png"
-              alt="MySWYM"
+              alt=""
               height={22}
               width={95}
             />
-            <h1 className="ms-plan-reveal-title">Préparation de ton plan</h1>
+            <h1 id="ms-plan-reveal-build-title" className="ms-plan-reveal-title">Préparation de ton plan</h1>
             <p className="ms-plan-reveal-sub">
               {BUILD_LINES[Math.min(lineIdx, BUILD_LINES.length - 1)]}
             </p>

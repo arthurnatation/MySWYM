@@ -44,6 +44,7 @@ export default function AppStatusScreen({
             className="ms-status-cta"
             onClick={onPrimary}
             disabled={primaryDisabled}
+            autoFocus
           >
             {busy ? primaryBusyLabel : primaryLabel}
           </button>

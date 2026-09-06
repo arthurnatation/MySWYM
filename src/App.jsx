@@ -118,6 +118,7 @@ import {
 } from "./lib/plan-account.js";
 import { BADGE_DEFS, computeStats, checkBadges } from "./lib/plan-stats.js";
 import { AppShell, AppTabShell, BottomNav, Loading, AppTopBar } from "./app-shell/index.js";
+import PublicLoading from "./app-shell/PublicLoading.jsx";
 import {
   GOALS,
   CATEGORIES,
@@ -10662,7 +10663,7 @@ export default function App() {
   if (authLoading) return (
     <>
       <style>{css}</style>
-      <Loading />
+      {isAuthPath(window.location.pathname) ? <PublicLoading /> : <Loading />}
     </>
   );
 

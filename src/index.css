@@ -134,7 +134,7 @@ code {
   color: var(--text-h);
 }
 .ms-plan-reveal--building {
-  background: #006bfd;
+  background: var(--accent, #006bfd);
   color: #fff;
 }
 .ms-plan-reveal--building .ms-plan-reveal-title {
@@ -164,7 +164,6 @@ code {
 }
 .ms-plan-reveal-building .myswym-boot-wordmark {
   margin-top: 4px;
-  mix-blend-mode: screen;
 }
 .ms-plan-reveal-inner {
   max-width: 440px;
