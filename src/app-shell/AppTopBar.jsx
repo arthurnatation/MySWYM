@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bell, Menu } from "lucide-react";
 import { G } from "../theme/palette.js";
+import BrandLogo from "../BrandLogo.jsx";
 import { resolveAvatarUrl } from "../lib/avatar.js";
 import {
   buildInAppNotifications,
@@ -10,7 +11,7 @@ import {
 import NotificationsSheet from "../sheets/NotificationsSheet.jsx";
 import { playUiSound } from "../lib/ui-sounds.js";
 
-/** Barre haute Miracle : hamburger gauche · notifs + avatar */
+/** Barre haute Miracle : hamburger · picto MySWYM · notifs + avatar */
 export default function AppTopBar({
   user,
   onOpenMenu,
@@ -89,6 +90,12 @@ export default function AppTopBar({
     if (action === "buddies") onTabChange?.("buddies");
   };
 
+  const handleLogoClick = () => {
+    if (!onTabChange) return;
+    playUiSound("soft");
+    onTabChange("home");
+  };
+
   const iconColor = G.ink;
 
   return (
@@ -109,6 +116,7 @@ export default function AppTopBar({
       <div
         className="app-shell"
         style={{
+          position: "relative",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -133,6 +141,39 @@ export default function AppTopBar({
             </button>
           ) : null}
         </div>
+
+        <div
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -50%)",
+            lineHeight: 0,
+          }}
+        >
+          {onTabChange ? (
+            <button
+              type="button"
+              onClick={handleLogoClick}
+              aria-label="MySWYM, accueil"
+              style={{
+                appearance: "none",
+                border: "none",
+                background: "transparent",
+                padding: 6,
+                margin: 0,
+                cursor: "pointer",
+                borderRadius: 10,
+                lineHeight: 0,
+              }}
+            >
+              <BrandLogo variant="mark" height={26} alt="" />
+            </button>
+          ) : (
+            <BrandLogo variant="mark" height={26} alt="MySWYM" />
+          )}
+        </div>
+
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <button
             type="button"

@@ -27,8 +27,8 @@
   --ms-primary-fg: #ffffff;
   --ms-secondary: #e8f2ff;
   --ms-border: rgba(15, 27, 45, 0.12);
-  --ms-sans: Geist, ui-sans-serif, system-ui, sans-serif;
-  --ms-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --ms-sans: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --ms-display: var(--ms-sans);
 }
 
 .ms-root {
@@ -67,7 +67,7 @@ body:has(.ms-root) {
 .ms-root h3 {
   color: inherit;
   font-family: var(--ms-display);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   text-transform: none;
 }
 
@@ -448,8 +448,8 @@ body:has(.ms-root) {
   --ms-primary: #006bfd;
   --ms-secondary: #e8f2ff;
   --ms-border: rgba(15, 27, 45, 0.12);
-  --ms-sans: Geist, ui-sans-serif, system-ui, sans-serif;
-  --ms-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --ms-sans: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --ms-display: var(--ms-sans);
   background:
     linear-gradient(180deg, #eef5fb 0%, #f4f8fc 40%, #f7fafc 100%);
   color: var(--ms-fg);
@@ -499,7 +499,7 @@ body:has(.ms-root) {
   font-family: var(--ms-display);
   font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
@@ -1899,7 +1899,7 @@ body:has(.ms-root) {
   font-size: 1.75rem;
   font-weight: 800;
   line-height: 1.18;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 .ms-how-h1 span {

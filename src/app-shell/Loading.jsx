@@ -1,4 +1,4 @@
-/** Boot soft mist : le mark se pose. Styles dans index.html. */
+/** Boot soft mist : le picto se pose. Styles dans index.html. */
 export default function Loading() {
   return (
     <div className="myswym-boot" role="status" aria-live="polite" aria-busy="true">
@@ -9,16 +9,16 @@ export default function Loading() {
             className="myswym-boot-mark"
             src="/logo-mark.png"
             alt=""
-            width={168}
-            height={111}
+            width={120}
+            height={114}
           />
         </div>
         <img
           className="myswym-boot-wordmark"
           src="/logo-myswym-on-light.png"
-          alt="mySWYM"
+          alt="MySWYM"
           height={22}
-          width={151}
+          width={95}
         />
       </div>
     </div>

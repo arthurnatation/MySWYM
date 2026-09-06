@@ -265,7 +265,7 @@ const AuthScreen = ({ onAuth, onBack, onNavigateMode, onStartQuiz, initialMode =
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 44 }}>
           {showBrandHeader ? (
             <div style={{ display: "flex", alignItems: "center" }}>
-              <BrandLogo variant="wordmark" height={24} onDark />
+              <BrandLogo variant="wordmark" height={24} />
             </div>
           ) : <div />}
           {onBack && (

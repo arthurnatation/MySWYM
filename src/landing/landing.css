@@ -16,8 +16,8 @@
     0 1px 0 rgba(255, 255, 255, 0.95) inset,
     0 12px 32px rgba(15, 40, 80, 0.1);
   --lp-radius: 1.125rem;
-  --lp-sans: Geist, ui-sans-serif, system-ui, sans-serif;
-  --lp-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --lp-sans: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --lp-display: var(--lp-sans);
 
   min-height: 100dvh;
   width: 100%;
@@ -68,7 +68,7 @@ body:has(.lp-root) {
 .lp-root h3 {
   color: inherit;
   font-family: var(--lp-display);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 .lp-root p {
@@ -85,7 +85,7 @@ body:has(.lp-root) {
 
 .lp-display {
   font-family: var(--lp-display);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
 }
 
 .lp-header {
@@ -786,7 +786,7 @@ body:has(.lp-root) {
   margin: 0;
   font-size: 1.35rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1.25;
   color: var(--lp-fg);
 }
