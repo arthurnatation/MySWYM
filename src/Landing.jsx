@@ -389,11 +389,11 @@ function SessionPreview() {
       <div className="lp-wrap lp-section lp-session-preview">
         <div className="lp-session-preview-phone">
           <img
-            src="/session-phone-mockup.png"
+            src="/session-phone-mockup.webp"
             alt={t("session.mockupAlt")}
             className="lp-session-preview-phone-img"
-            width={682}
-            height={1024}
+            width={1024}
+            height={1536}
             decoding="async"
             loading="lazy"
           />
