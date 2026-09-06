@@ -18,7 +18,6 @@ export default function SessionPrepSheet({
   startLabel = null,
   onClose,
   onUpgrade,
-  onTooHard,
   onStart,
   exportBar = null,
 }) {
@@ -46,7 +45,6 @@ export default function SessionPrepSheet({
         planId={planId}
         whyLine={whyLine}
         onUpgrade={onUpgrade}
-        onTooHard={onTooHard}
         onStart={onStart}
       />
       {exportBar}

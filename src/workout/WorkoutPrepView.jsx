@@ -4,7 +4,7 @@
  * Liste dense (lisible en un écran) + pastilles ⓘ.
  */
 import { useEffect, useMemo, useState } from "react";
-import { Play, Lock, Check, Copy, Printer } from "lucide-react";
+import { Check, Copy, Printer } from "lucide-react";
 import { buildWorkoutView } from "../lib/workout-display.js";
 import { openSessionPrint } from "../lib/session-export.js";
 import { formatLoopSessionTitle } from "../lib/swim-plan-bridge.js";
@@ -47,11 +47,10 @@ export default function WorkoutPrepView({
   colors: G,
   accent,
   isPremium = true,
-  showStart = true,
-  startLabel = null,
-  onStart,
+  showStart: _showStart = false,
+  startLabel: _startLabel = null,
+  onStart: _onStart,
   onUpgrade,
-  onTooHard,
   whyLine = null,
   lockedPreview = false,
   embedded = false,
@@ -66,7 +65,6 @@ export default function WorkoutPrepView({
   const [drill, setDrill] = useState(null);
   const [refCopied, setRefCopied] = useState(false);
   const locked = !isPremium || lockedPreview;
-  const cta = startLabel || (locked ? "Activer l’essai pour nager" : "Commencer la séance");
 
   const provenance = useMemo(
     () => buildSessionProvenance(session, { loopOrdinal: loopCursor, profile, planId }),
@@ -109,12 +107,12 @@ export default function WorkoutPrepView({
         <div style={{ marginBottom: 18 }}>
           <h2 style={{
             margin: 0,
-            fontFamily: '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
+            fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif",
             fontSize: 26,
             fontWeight: 700,
             color: G.ink,
             lineHeight: 1.15,
-            letterSpacing: "-0.03em",
+            letterSpacing: "-0.02em",
           }}>
             {displayTitle}
           </h2>
@@ -284,23 +282,10 @@ export default function WorkoutPrepView({
         </p>
       )}
 
-      {showStart && (
-        <button
-          type="button"
-          className="ms-pill-cta ms-workout-start"
-          onClick={() => {
-            if (locked) onUpgrade?.();
-            else onStart?.();
-          }}
-        >
-          {locked ? <Lock size={18} color="#fff" /> : <Play size={18} color="#fff" fill="#fff" />}
-          {cta}
-        </button>
-      )}
-
       <button
         type="button"
         className="ms-workout-secondary"
+        style={{ marginTop: 18 }}
         onClick={() => {
           if (locked) {
             onUpgrade?.();
@@ -313,16 +298,6 @@ export default function WorkoutPrepView({
         <Printer size={16} color="currentColor" />
         Imprimer la fiche
       </button>
-
-      {onTooHard && !locked && (
-        <button
-          type="button"
-          className="ms-workout-secondary"
-          onClick={onTooHard}
-        >
-          Trop dure pour moi, alléger la suite
-        </button>
-      )}
 
       {drill && (
         <DrillInfoSheet

@@ -3367,12 +3367,24 @@ const ShareModal = ({ session, goalLabel, badge = null, onClose }) => {
   };
 
   return (
-    <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="sheet-panel scale-in" style={{ background: G.surface, borderRadius: "24px 24px 0 0", padding: "28px 20px", paddingBottom: "max(28px, env(safe-area-inset-bottom))" }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: G.greyLight, margin: "0 auto 24px" }} />
-        <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: G.ink, marginBottom: 18, textAlign: "center" }}>
-          Partage ta séance
-        </h3>
+    <div
+      className="sheet-overlay ms-soft-overlay ms-soft-overlay--stacked"
+      style={{ zIndex: 560 }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="sheet-panel scale-in ms-soft-sheet" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom))" }}>
+        <div className="ms-soft-sheet-head">
+          <div className="ms-sheet-handle" />
+          <div className="ms-soft-sheet-head-row">
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h3 className="ms-soft-sheet-title" style={{ margin: 0 }}>Partage ta séance</h3>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Fermer" className="ms-soft-sheet-close">
+              <X size={18} color="currentColor" />
+            </button>
+          </div>
+        </div>
+        <div className="ms-soft-sheet-body">
         <div style={{ background: `linear-gradient(145deg, #06101F 0%, #0033A0 100%)`, borderRadius: 20, padding: 24, marginBottom: 16, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -40, right: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(0,87,253,0.35)" }} />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
@@ -3424,6 +3436,7 @@ const ShareModal = ({ session, goalLabel, badge = null, onClose }) => {
             : <><Copy size={14} /> Copier pour Strava / WhatsApp</>}
         </button>
         <button onClick={onClose} style={{ width: "100%", marginTop: 4, padding: "12px", background: "none", border: "none", color: G.grey, cursor: "pointer", fontSize: 13 }}>Fermer</button>
+        </div>
       </div>
     </div>
   );
@@ -4439,14 +4452,6 @@ const SessionCard = ({
             showStart={!resolved}
             onClose={() => setPrepOpen(false)}
             onUpgrade={() => onUpgrade?.("session_locked")}
-            onTooHard={
-              !resolved && isPremium
-                ? () => {
-                    setPrepOpen(false);
-                    onEditFeedback?.(weekIndex, sessionIndex);
-                  }
-                : undefined
-            }
             onStart={() => {
               if (!isPremium) {
                 onUpgrade?.("session_locked");
@@ -4478,14 +4483,6 @@ const SessionCard = ({
                 setPoolOpen(false);
                 if (!resolved && isPremium) onComplete?.(weekIndex, sessionIndex, "done");
               }}
-              onTooHard={
-                !resolved && isPremium
-                  ? () => {
-                      setPoolOpen(false);
-                      onEditFeedback?.(weekIndex, sessionIndex);
-                    }
-                  : undefined
-              }
             /></Suspense>
           )}
             </>

@@ -1,6 +1,6 @@
 /**
  * Export séance, texte (Strava / WhatsApp) et impression bord de bassin.
- * Impression = même vue que WorkoutPrepView / WorkoutExerciseCard.
+ * Impression = fiche compacte (vise 1 page A4).
  */
 import { buildWorkoutView } from "./workout-display.js";
 import { humanizeArthurDisplayTerms } from "./sports-engine/session-labels.js";
@@ -187,7 +187,7 @@ export function formatSessionPlainText(session, opts = {}) {
   return [...head, ...body].join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-/** HTML impression, même contenu que la fiche séance in-app. */
+/** HTML impression compacte (vise 1 page A4). */
 export function buildSessionPrintHtml(session) {
   const view = buildWorkoutView(session || {});
   const title = escapeHtml(nageurText(view.header?.title || "Séance"));
@@ -204,19 +204,25 @@ export function buildSessionPrintHtml(session) {
     .map((id) => EQUIPMENT_LABELS[id] || id)
     .filter(Boolean)
     .join(" · ");
-  const gearHtml = equipmentLabel
-    ? `<div class="gear">Matériel · ${escapeHtml(equipmentLabel)}</div>`
-    : "";
-  const cueHtml = view.header?.intensityCue
-    ? `<div class="gear">Objectif · ${escapeHtml(nageurText(capitalizeCue(view.header.intensityCue)))}</div>`
+  const gearBits = [];
+  if (equipmentLabel) gearBits.push(`Matériel · ${escapeHtml(equipmentLabel)}`);
+  if (view.header?.intensityCue) {
+    gearBits.push(`Objectif · ${escapeHtml(nageurText(capitalizeCue(view.header.intensityCue)))}`);
+  }
+  const gearHtml = gearBits.length
+    ? `<div class="gear">${gearBits.join(" · ")}</div>`
     : "";
   const banner = session?.sheetWeekRole;
   const bannerHtml = banner?.banner
-    ? `<div class="banner"><div class="banner-k">${escapeHtml(banner.label || "")}</div>${escapeHtml(nageurText(banner.banner))}</div>`
+    ? `<div class="banner">${escapeHtml(banner.label || "")}${banner.label ? " · " : ""}${escapeHtml(nageurText(banner.banner))}</div>`
     : "";
 
   const sectionsHtml = (view.sections || []).map((section) => {
     if (!section?.exercises?.length) return "";
+    const phaseClass =
+      section.id === "warm" ? "is-warm"
+        : section.id === "cool" ? "is-cool"
+          : "is-main";
     const meters = section.metersLabel
       ? ` <span class="m">${escapeHtml(section.metersLabel)}</span>`
       : "";
@@ -224,20 +230,27 @@ export function buildSessionPrintHtml(session) {
       .map((ex) => {
         const headline = escapeHtml(formatPrintHeadline(ex));
         const cue = formatPrintCue(ex);
-        const cueBlock = cue ? `<div class="cue">${escapeHtml(cue)}</div>` : "";
-        const drills = formatPrintDrillLines(ex)
-          .map((d) => `<div class="sub">${escapeHtml(d)}</div>`)
-          .join("");
-        const chips = formatPrintChips(ex)
-          .map((c) => `<span class="chip">${escapeHtml(c)}</span>`)
-          .join("");
-        const chipBlock = chips ? `<div class="chips">${chips}</div>` : "";
+        const drills = formatPrintDrillLines(ex);
+        const chips = formatPrintChips(ex);
+        const chipTxt = chips.length
+          ? ` <span class="chips">${chips.map((c) => escapeHtml(c)).join(" · ")}</span>`
+          : "";
         const n = ex.phaseIndex || ex.index || "";
-        return `<li><span class="n">${n}</span><div class="body"><div class="ex">${headline}</div>${cueBlock}${drills}${chipBlock}</div></li>`;
+        const extras = [
+          cue ? `<div class="cue">${escapeHtml(cue)}</div>` : "",
+          ...drills.map((d) => `<div class="sub">${escapeHtml(d)}</div>`),
+        ].join("");
+        return `<li><span class="n">${n}</span><div class="body"><div class="ex">${headline}${chipTxt}</div>${extras}</div></li>`;
       })
       .join("");
-    return `<section><h2>${escapeHtml(section.label)}${meters}</h2><ol>${items}</ol></section>`;
+    return `<section class="${phaseClass}"><h2>${escapeHtml(section.label)}${meters}</h2><ol>${items}</ol></section>`;
   }).join("");
+
+  const origin =
+    (typeof window !== "undefined" && window.location?.origin)
+      ? window.location.origin
+      : "https://www.myswym.app";
+  const wordUrl = `${origin}/logo-myswym-on-light.png`;
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -246,48 +259,168 @@ export function buildSessionPrintHtml(session) {
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>${title}, MySWYM</title>
 <style>
-  :root { color-scheme: light; }
+  @page { margin: 10mm 12mm; size: A4; }
+  :root {
+    color-scheme: light;
+    --ink: #0f1b2d;
+    --muted: #4a5d72;
+    --blue: #006bfd;
+    --mint: #1fae86;
+    --coral: #e85a68;
+    --line: rgba(15, 27, 45, 0.12);
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; padding: 24px 20px 40px; font-family: ui-sans-serif, system-ui, sans-serif; color: #0b1220; background: #fff; }
-  .brand { font-size: 11px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: #0057FF; margin-bottom: 8px; }
-  h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; margin: 0 0 8px; }
-  .meta { font-size: 15px; font-weight: 700; color: #445; margin-bottom: 8px; }
-  .gear { font-size: 13px; font-weight: 600; color: #556; margin: 0 0 4px; }
-  .banner { margin: 12px 0 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid #d7e4fc; background: #f4f8ff; font-size: 13px; font-weight: 600; color: #334; line-height: 1.45; }
-  .banner-k { font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; color: #0b1220; }
-  .stack { margin-bottom: 22px; }
-  section { margin-bottom: 18px; break-inside: avoid; }
-  h2 { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; color: #3d8fff; margin: 0 0 8px; padding-bottom: 6px; border-bottom: 1px solid #d7e4fc; display: flex; justify-content: space-between; gap: 12px; }
-  h2 .m { color: #667; font-weight: 700; letter-spacing: 0; text-transform: none; font-variant-numeric: tabular-nums; }
+  body {
+    margin: 0;
+    padding: 12px 14px;
+    font-family: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--ink);
+    background: #fff;
+    font-size: 11px;
+    line-height: 1.25;
+    -webkit-font-smoothing: antialiased;
+  }
+  .head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1.5px solid var(--ink);
+  }
+  .brand img {
+    height: 14px;
+    width: auto;
+    display: block;
+    position: relative;
+    top: 1px;
+  }
+  h1 {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin: 0;
+  }
+  .meta {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 0 0 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .gear, .banner {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted);
+    margin: 0 0 3px;
+    line-height: 1.3;
+  }
+  .banner { color: var(--blue); }
+  section {
+    margin: 8px 0 0;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+  section.is-warm { --phase: var(--blue); }
+  section.is-main { --phase: var(--coral); }
+  section.is-cool { --phase: var(--mint); }
+  h2 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--phase, var(--blue));
+    margin: 0 0 2px;
+    padding: 0 0 2px;
+    border-bottom: 1px solid color-mix(in srgb, var(--phase, var(--blue)) 35%, transparent);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  h2 .m {
+    color: var(--muted);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    font-size: 10px;
+  }
   ol { margin: 0; padding: 0; list-style: none; }
-  li { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 10px 0; border-top: 1px solid #e8eef4; }
-  li:first-child { border-top: none; padding-top: 2px; }
-  .n { width: 22px; flex-shrink: 0; font-size: 13px; font-weight: 800; color: #3d8fff; font-variant-numeric: tabular-nums; text-align: right; line-height: 1.3; padding-top: 2px; }
+  li {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    margin: 0;
+    padding: 3px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  li:last-child { border-bottom: none; }
+  .n {
+    width: 14px;
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--phase, var(--blue));
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    line-height: 1.35;
+  }
   .body { flex: 1; min-width: 0; }
-  .ex { font-size: 16px; font-weight: 800; line-height: 1.25; letter-spacing: -0.01em; }
-  .cue { font-size: 12px; font-weight: 600; color: #556; margin-top: 3px; line-height: 1.35; }
-  .sub { font-size: 12px; font-weight: 600; color: #334; margin-top: 3px; line-height: 1.35; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-  .chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 8px; background: #eef4ff; color: #0057FF; }
-  .foot { margin-top: 28px; font-size: 11px; color: #889; }
+  .ex {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--ink);
+  }
+  .chips {
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .cue, .sub {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-top: 1px;
+    line-height: 1.3;
+  }
+  .sub { color: var(--ink); }
+  .foot {
+    margin-top: 8px;
+    padding-top: 4px;
+    border-top: 1px solid var(--line);
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--muted);
+    text-align: right;
+  }
   @media print {
-    body { padding: 12mm; }
+    body { padding: 0; }
     .noprint { display: none !important; }
   }
 </style>
 </head>
 <body>
-  <div class="brand">MySWYM</div>
-  <h1>${title}</h1>
+  <div class="head">
+    <span class="brand"><img src="${escapeHtml(wordUrl)}" alt="MySWYM" height="14" width="60"/></span>
+    <h1>${title}</h1>
+  </div>
   ${meta ? `<div class="meta">${meta}</div>` : ""}
-  <div class="stack">
   ${bannerHtml}
   ${gearHtml}
-  ${cueHtml}
-  </div>
   ${sectionsHtml || "<p>Détail de séance indisponible.</p>"}
-  <div class="foot">myswym.app · Impression personnelle</div>
-  <script>window.addEventListener("load",()=>{try{window.print()}catch(e){}});</script>
+  <div class="foot">myswym.app</div>
+  <script>
+    window.addEventListener("load", () => {
+      const imgs = Array.from(document.images || []);
+      Promise.all(imgs.map((img) => (
+        img.complete
+          ? Promise.resolve()
+          : new Promise((resolve) => { img.onload = img.onerror = resolve; })
+      ))).then(() => { try { window.print(); } catch (e) {} });
+    });
+  </script>
 </body>
 </html>`;
 }
