@@ -122,6 +122,7 @@ export default function DrillInfoSheet({ educatif, educatifs, onClose }) {
       title={title}
       onClose={onClose}
       lockScroll={false}
+      zIndex={560}
     >
       {multi ? <MultiDrillBody educatifs={list} /> : <SingleDrillBody educatif={list[0]} />}
     </SoftMistSheet>

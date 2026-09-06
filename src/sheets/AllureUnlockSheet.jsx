@@ -78,6 +78,7 @@ export default function AllureUnlockSheet({
       title="Ton allure, c’est le moteur"
       onClose={close}
       ariaLabel="Mon allure"
+      zIndex={400}
     >
       <div
         style={{

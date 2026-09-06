@@ -314,6 +314,8 @@ function TipSheetShell({ eyebrow, title, onClose, children }) {
       title={title}
       onClose={onClose}
       lockScroll={false}
+      /* Au-dessus prep/historique (400) et mode bassin (500). */
+      zIndex={560}
     >
       {children}
     </SoftMistSheet>

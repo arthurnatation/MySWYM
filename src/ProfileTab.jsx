@@ -606,6 +606,7 @@ export default function ProfileTab({
           title="Compte"
           subtitle={user?.email || "Ton adresse e-mail"}
           ariaLabel="Gérer le compte"
+          zIndex={400}
         >
           <div className="ms-account-sheet">
             <div className="ms-account-sheet-block">
