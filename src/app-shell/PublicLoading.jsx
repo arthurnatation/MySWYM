@@ -1,12 +1,20 @@
+import { bootStatusLabel } from "../lib/boot-warm.js";
+
 /** Chargement marketing : wordmark + barre. Styles dans index.html. */
 export default function PublicLoading() {
   return (
-    <div className="myswym-boot myswym-boot--public" role="status" aria-live="polite" aria-busy="true">
+    <div
+      className="myswym-boot myswym-boot--public"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label={bootStatusLabel()}
+    >
       <div className="myswym-boot-inner">
         <img
           className="myswym-boot-wordmark myswym-boot-wordmark--public myswym-boot-wordmark--static"
           src="/logo-myswym-on-light.png"
-          alt="MySWYM"
+          alt=""
           height={22}
           width={95}
         />

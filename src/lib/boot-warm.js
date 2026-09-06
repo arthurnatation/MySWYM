@@ -21,6 +21,19 @@ export function isAppShellPath(pathname = "/") {
   );
 }
 
+/** GIF nageur : questionnaire et plan. Auth / admin / marketing : barre mist. */
+export function isAppGifPath(pathname = "/") {
+  const p = String(pathname || "/").replace(/\/+$/, "") || "/";
+  return p === "/app" || p.startsWith("/app/");
+}
+
+export function bootStatusLabel() {
+  if (typeof document !== "undefined" && String(document.documentElement.lang || "").startsWith("fr")) {
+    return "Chargement";
+  }
+  return "Loading";
+}
+
 export function remainingLandingBootMs({ reduceMotion = false, seen = false, elapsed = 0 } = {}) {
   if (reduceMotion || seen) return 0;
   return Math.max(0, LANDING_BOOT_MS - Math.max(0, elapsed));
