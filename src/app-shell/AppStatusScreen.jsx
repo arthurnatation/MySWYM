@@ -29,9 +29,9 @@ export default function AppStatusScreen({
           <img
             className="ms-status-wordmark"
             src="/logo-myswym-on-light.png"
-            alt="mySWYM"
+            alt="MySWYM"
             height={20}
-            width={138}
+            width={86}
           />
         ) : null}
         <h1 id={titleId} className="ms-status-title">

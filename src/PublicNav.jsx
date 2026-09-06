@@ -9,6 +9,7 @@ import { useAuthSession, usePublicCta } from "./lib/use-auth-session.js";
 import { supabase } from "./supabase.js";
 import { reset as resetAnalytics } from "./lib/analytics.js";
 import { Dialog, DialogContent, DialogOverlay, DialogPortal, DialogTitle, DialogTrigger } from "./ui/lp-dialog.jsx";
+import BrandLogo from "./BrandLogo.jsx";
 import "./theme/public.css";
 
 export default function PublicNav() {
@@ -59,12 +60,7 @@ export default function PublicNav() {
       <nav className={`ms-header${scrolled || menuOpen ? " is-solid" : ""}`}>
         <div className="ms-header-inner">
           <LocalizedLink to="/" className="ms-brand" aria-label={t("nav.homeAria")}>
-            <img
-              src="/logo-myswym-on-light.png"
-              alt="mySWYM"
-              height={26}
-              width={178}
-            />
+            <BrandLogo variant="wordmark" height={26} alt="MySWYM" />
           </LocalizedLink>
 
           {!isMobile && (
