@@ -1806,6 +1806,11 @@
   -webkit-backdrop-filter: blur(10px) saturate(1.1) !important;
 }
 
+/* Sheets empilés (tips / éducatifs) : au-dessus de prep (400) et bassin (500). */
+.ms-soft-overlay--stacked {
+  z-index: 560;
+}
+
 .ms-soft-sheet {
   width: 100%;
   max-width: var(--sheet-max, 440px);

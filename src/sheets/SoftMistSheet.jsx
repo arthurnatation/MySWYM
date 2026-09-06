@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
@@ -21,6 +21,15 @@ export default function SoftMistSheet({
   dismissOnOverlay = true,
   fullscreenMobile = false,
 }) {
+  /** Ignore le click/mouseup qui a ouvert le sheet (évite fermeture immédiate). */
+  const ignoreDismissUntil = useRef(0);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    ignoreDismissUntil.current = Date.now() + 350;
+    return undefined;
+  }, [open]);
+
   useEffect(() => {
     if (!open || !lockScroll) return undefined;
     const prev = document.body.style.overflow;
@@ -31,10 +40,14 @@ export default function SoftMistSheet({
   useEffect(() => {
     if (!open || !onClose) return undefined;
     const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopPropagation();
+      onClose();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // capture : le sheet du dessus mange Escape avant le parent (prep / historique).
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [open, onClose]);
 
   if (!open) return null;
@@ -43,6 +56,7 @@ export default function SoftMistSheet({
     "sheet-overlay",
     "ms-soft-overlay",
     fullscreenMobile ? "ms-soft-overlay--fullscreen" : "",
+    zIndex != null ? "ms-soft-overlay--stacked" : "",
     className,
   ].filter(Boolean).join(" ");
 
@@ -53,6 +67,13 @@ export default function SoftMistSheet({
     fullscreenMobile ? "ms-soft-sheet--fullscreen" : "",
   ].filter(Boolean).join(" ");
 
+  const tryDismiss = (e) => {
+    if (!dismissOnOverlay || !onClose) return;
+    if (e.target !== e.currentTarget) return;
+    if (Date.now() < ignoreDismissUntil.current) return;
+    onClose();
+  };
+
   return createPortal(
     <div
       className={overlayClass}
@@ -60,12 +81,14 @@ export default function SoftMistSheet({
       aria-modal="true"
       aria-label={ariaLabel || title || "Dialogue"}
       style={zIndex != null ? { zIndex } : undefined}
-      onClick={(e) => {
-        if (!dismissOnOverlay || !onClose) return;
-        if (e.target === e.currentTarget) onClose();
-      }}
+      onMouseDown={tryDismiss}
+      onClick={tryDismiss}
     >
-      <div className={panelClass}>
+      <div
+        className={panelClass}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="ms-soft-sheet-head">
           <div className="ms-sheet-handle" />
           <div className="ms-soft-sheet-head-row">
