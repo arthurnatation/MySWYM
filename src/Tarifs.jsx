@@ -170,7 +170,7 @@ export default function TarifsPage() {
 
       <section className="ms-pricing-hero">
         <div className="ms-pricing-wrap">
-          <Breadcrumb onDark items={crumbs} />
+           <Breadcrumb items={crumbs} />
           <p className="ms-pricing-kicker">{t("pricingPage.eyebrow")}</p>
           <h1 className="ms-pricing-h1">{t("pricingPage.h1")}</h1>
           <p className="ms-pricing-lead">{t("pricingPage.lead")}</p>
@@ -252,9 +252,9 @@ export default function TarifsPage() {
                 setAcceptWithdrawal(v);
                 setCheckoutError("");
               }}
-              ink="#f4f8fa"
-              muted="#9bb0c8"
-              linkColor="#74b4ff"
+              ink="#0f1b2d"
+              muted="#4a5d72"
+              linkColor="#006bfd"
             />
           </div>
         </section>

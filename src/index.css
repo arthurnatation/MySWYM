@@ -1,24 +1,35 @@
 @import "./theme/session-card.css";
+@import "./theme/app-immersive.css";
 
 :root {
-  --text: #b4c6db;
-  --text-h: #f4f8fa;
-  --bg: #000514;
-  --border: rgba(0, 107, 253, 0.22);
-  --code-bg: #06101f;
+  --text: #4A5D72;
+  --text-h: #0F1B2D;
+  --bg: #EAF2FA;
+  --border: rgba(15, 27, 45, 0.08);
+  --code-bg: #F0F5FA;
   --accent: #006bfd;
-  --accent-bg: rgba(0, 107, 253, 0.16);
-  --accent-border: rgba(0, 107, 253, 0.5);
-  --social-bg: rgba(6, 16, 31, 0.5);
-  --shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  --accent-bg: rgba(0, 107, 253, 0.12);
+  --accent-border: rgba(0, 107, 253, 0.4);
+  --social-bg: rgba(255, 255, 255, 0.55);
+  --shadow: 0 12px 36px rgba(15, 60, 120, 0.12);
 
-  --sans: Geist, ui-sans-serif, system-ui, sans-serif;
-  --heading: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --sans: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --heading: var(--sans);
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 16px/150% var(--sans);
-  letter-spacing: 0.01em;
-  color-scheme: dark;
+  /* Échelle typo app (sobre / classique, réf. Miracle Points) */
+  --type-page: 1.75rem; /* 28 · titre d’écran */
+  --type-section: 1.125rem; /* 18 · titre de carte / section */
+  --type-display: 2.5rem; /* 40 · grand chiffre */
+  --type-body: 0.9375rem; /* 15 · corps */
+  --type-label: 0.8125rem; /* 13 · légende */
+  --type-caption: 0.75rem; /* 12 */
+  --type-tracking-tight: -0.02em;
+  --type-tracking: -0.01em;
+
+  font: 16px/1.5 var(--sans);
+  letter-spacing: var(--type-tracking);
+  color-scheme: light;
   color: var(--text-h);
   background: var(--bg);
   font-synthesis: none;
@@ -54,7 +65,7 @@ h2,
 h3 {
   font-family: var(--heading);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--type-tracking-tight);
   color: inherit;
 }
 
@@ -122,6 +133,16 @@ code {
   background: var(--bg);
   color: var(--text-h);
 }
+.ms-plan-reveal--building {
+  background: var(--accent, #006bfd);
+  color: #fff;
+}
+.ms-plan-reveal--building .ms-plan-reveal-title {
+  color: #fff;
+}
+.ms-plan-reveal--building .ms-plan-reveal-sub {
+  color: rgba(255, 255, 255, 0.82);
+}
 .ms-plan-reveal-ready {
   animation: ms-screen-enter 0.28s ease both;
   flex: 1;
@@ -138,6 +159,12 @@ code {
   justify-content: center;
   text-align: center;
 }
+.ms-plan-reveal-building .ms-plan-reveal-title {
+  margin-top: 1.5rem;
+}
+.ms-plan-reveal-building .myswym-boot-wordmark {
+  margin-top: 4px;
+}
 .ms-plan-reveal-inner {
   max-width: 440px;
   margin: 0 auto;
@@ -146,14 +173,6 @@ code {
   flex-direction: column;
   min-height: 100dvh;
   box-sizing: border-box;
-}
-.ms-plan-reveal-spin {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  border-top-color: var(--accent);
-  animation: ms-plan-reveal-spin 0.9s linear infinite;
 }
 .ms-plan-reveal-title {
   margin: 1.75rem 0 0;
@@ -410,15 +429,6 @@ code {
   font-size: 13px;
   line-height: 1.45;
   color: var(--text);
-}
-@keyframes ms-plan-reveal-spin {
-  to { transform: rotate(360deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ms-plan-reveal-spin {
-    animation: none;
-    border-color: var(--accent);
-  }
 }
 
 .ms-app-btn {

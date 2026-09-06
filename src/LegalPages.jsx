@@ -28,7 +28,7 @@ function LegalLayout({ title, subtitle, path, description, children, after }) {
       <PublicNav />
       <main className="ms-legal-main">
         <div className="ms-legal-wrap">
-          <Breadcrumb items={crumbs} onDark />
+           <Breadcrumb items={crumbs} />
           <p className="ms-pricing-kicker">{t("footer.legal")}</p>
           <h1 className="ms-legal-h1">{title}</h1>
           <p className="ms-legal-lead">{subtitle}</p>

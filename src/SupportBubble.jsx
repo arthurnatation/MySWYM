@@ -7,13 +7,8 @@ import { getSupportSessionRef } from "./lib/support-context.js";
 const FONT = "Geist, ui-sans-serif, system-ui, sans-serif";
 const TRIAL_DAYS = 7;
 const BLUE = "#006bfd";
-/** Thème clair du widget, contraste avec le fond sombre de l’app. */
-const INK = "#0b1526";
-const MUTED = "#5c6b7e";
-const LINE = "rgba(11, 21, 38, 0.1)";
-const SURFACE = "#ffffff";
-const PAGE = "#f3f6fa";
-const BUBBLE = "#e8eef5";
+/** Thème soft mist du widget. */
+const MUTED = "#6b7c8f";
 const ARTHUR_PHOTO = "/coach.webp";
 
 /** FAQ rule-based, produit + vocabulaire / méthode natation MySWYM. */
@@ -258,19 +253,6 @@ function lastPreview(messages) {
   return "";
 }
 
-function bubbleAlign(role) {
-  if (role === "user") return "flex-end";
-  if (role === "system") return "center";
-  return "flex-start";
-}
-
-function bubbleColors(role) {
-  if (role === "user") return { background: BLUE, color: "#fff", border: "none" };
-  if (role === "agent") return { background: BUBBLE, color: INK, border: "none" };
-  if (role === "system") return { background: "transparent", color: MUTED, border: "none" };
-  return { background: BUBBLE, color: INK, border: "none" };
-}
-
 function roleLabel(role) {
   if (role === "agent") return "Arthur";
   if (role === "bot") return "Assistance";
@@ -325,19 +307,6 @@ function LoutreAvatar({ height = 92 }) {
   );
 }
 
-const iconBtn = {
-  width: 36,
-  height: 36,
-  border: "none",
-  background: "transparent",
-  borderRadius: 10,
-  cursor: "pointer",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-};
-
 /**
  * Widget support type Intercom : Accueil / Aide / Messages, chat persisté vers Arthur.
  */
@@ -363,6 +332,19 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
   const fetchGen = useRef(0);
   const userId = user?.id || null;
   const firstName = firstNameOf(user);
+
+  useEffect(() => {
+    const openFromEvent = (e) => {
+      const detail = e?.detail || {};
+      setOpen(true);
+      if (detail.tab === "messages" || detail.tab === "help" || detail.tab === "home") {
+        setTab(detail.tab);
+        setView("tabs");
+      }
+    };
+    window.addEventListener("myswym:open-support", openFromEvent);
+    return () => window.removeEventListener("myswym:open-support", openFromEvent);
+  }, []);
 
   const conversation = thread.conversation;
   const liveOpen = conversation?.status === "open";
@@ -594,38 +576,12 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
         type="button"
         onClick={() => setTab(id)}
         aria-current={active ? "page" : undefined}
-        style={{
-          flex: 1,
-          minHeight: 56,
-          border: "none",
-          background: "transparent",
-          cursor: "pointer",
-          color: active ? BLUE : MUTED,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 4,
-          fontFamily: FONT,
-          fontSize: 11,
-          fontWeight: 600,
-        }}
+        className={`support-nav-btn${active ? " is-active" : ""}`}
       >
         <span style={{ position: "relative", display: "inline-flex" }}>
           <Icon size={20} color={active ? BLUE : MUTED} />
           {id === "messages" && unread ? (
-            <span
-              aria-hidden
-              style={{
-                position: "absolute",
-                top: -2,
-                right: -4,
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "#ff5a3d",
-              }}
-            />
+            <span aria-hidden className="support-nav-dot" />
           ) : null}
         </span>
         {label}
@@ -634,26 +590,7 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
   };
 
   const AskButton = ({ label = "Poser une question" }) => (
-    <button
-      type="button"
-      onClick={askQuestion}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 8,
-        minHeight: 44,
-        padding: "10px 18px",
-        borderRadius: 999,
-        border: "none",
-        background: BLUE,
-        color: "#fff",
-        fontWeight: 700,
-        fontSize: 14,
-        cursor: "pointer",
-        fontFamily: FONT,
-      }}
-    >
+    <button type="button" onClick={askQuestion} className="support-ask-btn">
       {label}
       <MessageCircle size={16} color="#fff" />
     </button>
@@ -666,36 +603,14 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
         aria-label={open ? "Fermer l’aide" : "Aide et support"}
         aria-expanded={open}
         onClick={openPanel}
-        className={aboveBottomNav ? "support-fab" : "support-fab support-fab--bare"}
-        style={{
-          width: 54,
-          height: 54,
-          borderRadius: "50%",
-          border: "none",
-          background: BLUE,
-          color: "#fff",
-          boxShadow: "0 8px 28px rgba(53,93,163,0.35)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        className={[
+          aboveBottomNav ? "support-fab" : "support-fab support-fab--bare",
+          open ? "is-open" : "",
+        ].filter(Boolean).join(" ")}
       >
-        {open ? <ChevronDown size={26} color="#fff" /> : <MessageCircle size={24} color="#fff" />}
+        {open ? <ChevronDown size={26} color="currentColor" /> : <MessageCircle size={24} color="currentColor" />}
         {!open && unread ? (
-          <span
-            aria-label="Nouveau message"
-            style={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              background: "#ff5a3d",
-              border: `2px solid ${BLUE}`,
-            }}
-          />
+          <span aria-label="Nouveau message" className="support-fab-badge" />
         ) : null}
       </button>
 
@@ -705,135 +620,62 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
           aria-modal="true"
           aria-label="Aide MySWYM"
           className={aboveBottomNav ? "support-widget" : "support-widget support-widget--bare"}
-          style={{ fontFamily: FONT, color: INK }}
+          style={{ fontFamily: FONT }}
         >
           {view === "chat" ? (
             <>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 8px 10px 4px",
-                  borderBottom: `1px solid ${LINE}`,
-                  background: SURFACE,
-                }}
-              >
-                <button type="button" aria-label="Retour" onClick={backToTabs} style={iconBtn}>
-                  <ArrowLeft size={18} color={MUTED} />
+              <div className="support-widget-head">
+                <button type="button" aria-label="Retour" onClick={backToTabs} className="support-icon-btn">
+                  <ArrowLeft size={18} color="currentColor" />
                 </button>
-                <ArthurAvatar size={32} radius={8} />
+                <ArthurAvatar size={34} radius={12} />
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontWeight: 800, fontSize: 15, lineHeight: 1.2 }}>
+                  <div className="support-widget-title" style={{ fontSize: 15 }}>
                     Arthur
                   </div>
-                  <div style={{ fontSize: 12, color: MUTED, marginTop: 1 }}>
+                  <div className="support-widget-subtitle">
                     L’équipe peut aussi aider
                   </div>
                 </div>
-                <button type="button" aria-label="Fermer" onClick={close} style={iconBtn}>
-                  <X size={18} color={MUTED} />
+                <button type="button" aria-label="Fermer" onClick={close} className="support-icon-btn">
+                  <X size={18} color="currentColor" />
                 </button>
               </div>
 
-              <div
-                ref={listRef}
-                style={{
-                  flex: 1,
-                  overflowY: "auto",
-                  minHeight: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 10,
-                  padding: "14px 14px 8px",
-                  background: PAGE,
-                  WebkitOverflowScrolling: "touch",
-                }}
-              >
+              <div ref={listRef} className="support-chat-list">
                 {messages.map((msg, i) => {
-                  const colors = bubbleColors(msg.role);
                   const label = roleLabel(msg.role);
+                  const kind =
+                    msg.role === "user"
+                      ? "user"
+                      : msg.role === "system"
+                        ? "system"
+                        : msg.role === "agent"
+                          ? "agent"
+                          : "bot";
                   return (
                     <div
                       key={msg.id || `${msg.role}-${i}`}
-                      style={{
-                        alignSelf: bubbleAlign(msg.role),
-                        maxWidth: msg.role === "system" ? "100%" : "88%",
-                        background: colors.background,
-                        color: colors.color,
-                        border: colors.border,
-                        borderRadius:
-                          msg.role === "user"
-                            ? "14px 14px 4px 14px"
-                            : msg.role === "system"
-                              ? 0
-                              : "14px 14px 14px 4px",
-                        padding: msg.role === "system" ? "4px 6px" : "10px 13px",
-                        fontSize: msg.role === "system" ? 12 : 14,
-                        lineHeight: 1.5,
-                        fontWeight: 500,
-                        textAlign: msg.role === "system" ? "center" : "left",
-                      }}
+                      className={`support-bubble support-bubble--${kind}`}
                     >
-                      {label ? (
-                        <div
-                          style={{
-                            fontSize: 10,
-                            fontWeight: 700,
-                            letterSpacing: "0.06em",
-                            textTransform: "uppercase",
-                            color: MUTED,
-                            marginBottom: 4,
-                          }}
-                        >
-                          {label}
-                        </div>
-                      ) : null}
+                      {label ? <div className="support-bubble-label">{label}</div> : null}
                       {msg.text}
                     </div>
                   );
                 })}
                 {busy ? (
-                  <div
-                    style={{
-                      alignSelf: "flex-start",
-                      background: BUBBLE,
-                      border: "none",
-                      color: MUTED,
-                      borderRadius: "14px 14px 14px 4px",
-                      padding: "10px 14px",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      letterSpacing: "0.12em",
-                    }}
-                    aria-live="polite"
-                  >
+                  <div className="support-typing" aria-live="polite">
                     …
                   </div>
                 ) : null}
               </div>
 
-              <div style={{ padding: "10px 12px 12px", background: SURFACE, borderTop: `1px solid ${LINE}` }}>
+              <div className="support-composer">
                 {error ? (
                   <p style={{ color: "#c2410c", fontSize: 12, fontWeight: 600, margin: "0 0 8px" }}>{error}</p>
                 ) : null}
                 {showClosed ? (
-                  <button
-                    type="button"
-                    onClick={() => beginFresh()}
-                    style={{
-                      width: "100%",
-                      minHeight: 44,
-                      borderRadius: 12,
-                      border: "none",
-                      background: BLUE,
-                      color: "#fff",
-                      fontWeight: 700,
-                      fontSize: 14,
-                      cursor: "pointer",
-                      fontFamily: FONT,
-                    }}
-                  >
+                  <button type="button" onClick={() => beginFresh()} className="support-ask-btn" style={{ width: "100%" }}>
                     Nouvelle conversation
                   </button>
                 ) : (
@@ -842,7 +684,7 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
                       e.preventDefault();
                       send();
                     }}
-                    style={{ display: "flex", gap: 8, alignItems: "center" }}
+                    className="support-composer-row"
                   >
                     <input
                       type="text"
@@ -851,36 +693,13 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
                       placeholder="Poser une question…"
                       aria-label="Poser une question"
                       disabled={busy}
-                      style={{
-                        flex: 1,
-                        minHeight: 44,
-                        borderRadius: 12,
-                        border: `1px solid ${LINE}`,
-                        padding: "10px 14px",
-                        fontSize: 15,
-                        fontFamily: FONT,
-                        color: INK,
-                        outline: "none",
-                        background: PAGE,
-                      }}
+                      className="support-composer-input"
                     />
                     <button
                       type="submit"
                       aria-label="Envoyer"
                       disabled={busy || !input.trim()}
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: "50%",
-                        border: "none",
-                        background: input.trim() && !busy ? BLUE : "#c5ced9",
-                        color: "#fff",
-                        cursor: input.trim() && !busy ? "pointer" : "default",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
+                      className="support-send-btn"
                     >
                       <Send size={16} color="#fff" />
                     </button>
@@ -912,42 +731,25 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
             </>
           ) : (
             <>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 10px 10px 16px",
-                  borderBottom: `1px solid ${LINE}`,
-                  background: SURFACE,
-                }}
-              >
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>
+              <div className="support-widget-head support-widget-head--tabs">
+                <h3 className="support-widget-title">
                   {tab === "home" ? "Accueil" : tab === "help" ? "Aide" : "Messages"}
                 </h3>
-                <button type="button" aria-label="Fermer" onClick={close} style={iconBtn}>
-                  <X size={18} color={MUTED} />
+                <button type="button" aria-label="Fermer" onClick={close} className="support-icon-btn">
+                  <X size={18} color="currentColor" />
                 </button>
               </div>
 
-              <div
-                style={{
-                  flex: 1,
-                  minHeight: 0,
-                  overflowY: "auto",
-                  WebkitOverflowScrolling: "touch",
-                  background: PAGE,
-                }}
-              >
+              <div className="support-widget-body">
                 {tab === "home" && (
-                  <div style={{ padding: "22px 18px 18px" }}>
-                    <div aria-hidden style={{ marginBottom: 10, marginLeft: -6 }}>
-                      <LoutreAvatar height={92} />
+                  <div className="support-home">
+                    <div className="support-home-mascot" aria-hidden>
+                      <LoutreAvatar height={96} />
                     </div>
-                    <h4 style={{ margin: "0 0 6px", fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}>
+                    <h4 className="support-home-title">
                       {firstName ? `Salut ${firstName}` : "Salut"}
                     </h4>
-                    <p style={{ margin: "0 0 18px", fontSize: 14, color: MUTED, lineHeight: 1.5 }}>
+                    <p className="support-home-lead">
                       Moi c’est la loutre MySWYM, bras droit d’Arthur, et la seule ici
                       qui n’a jamais eu besoin de palmes. Comment je peux t’aider ?
                     </p>
@@ -955,37 +757,13 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
                       <button
                         type="button"
                         onClick={() => openHistory(history[0])}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 12,
-                          width: "100%",
-                          textAlign: "left",
-                          padding: "12px 14px",
-                          minHeight: 64,
-                          borderRadius: 12,
-                          border: `1px solid ${LINE}`,
-                          background: SURFACE,
-                          cursor: "pointer",
-                          fontFamily: FONT,
-                          marginBottom: 16,
-                        }}
+                        className="support-card"
                       >
                         <span style={{ minWidth: 0, flex: 1 }}>
-                          <span style={{ display: "block", fontWeight: 700, fontSize: 14, color: INK }}>
+                          <span className="support-card-title">
                             {formatConvWhen(history[0]?.updated_at) || "Dernière conversation"}
                           </span>
-                          <span
-                            style={{
-                              display: "block",
-                              fontSize: 12,
-                              color: MUTED,
-                              marginTop: 3,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
+                          <span className="support-card-meta">
                             {history[0]?.last_body || lastPreview(thread.messages) || "Continuer"}
                           </span>
                         </span>
@@ -997,31 +775,15 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
                 )}
 
                 {tab === "help" && (
-                  <div style={{ padding: "8px 0 16px" }}>
+                  <div style={{ padding: "4px 0 16px" }}>
                     {HELP_ARTICLES.map((article, i) => {
                       const openArticle = helpOpen === i;
                       return (
-                        <div key={article.title} style={{ borderBottom: `1px solid ${LINE}` }}>
+                        <div key={article.title} className="support-help-item">
                           <button
                             type="button"
                             onClick={() => setHelpOpen(openArticle ? null : i)}
-                            style={{
-                              width: "100%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              gap: 12,
-                              padding: "14px 16px",
-                              minHeight: 48,
-                              border: "none",
-                              background: "transparent",
-                              cursor: "pointer",
-                              fontFamily: FONT,
-                              textAlign: "left",
-                              color: INK,
-                              fontSize: 14,
-                              fontWeight: 600,
-                            }}
+                            className="support-help-trigger"
                           >
                             {article.title}
                             <ChevronRight
@@ -1035,16 +797,7 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
                             />
                           </button>
                           {openArticle ? (
-                            <p
-                              style={{
-                                margin: "0 16px 14px",
-                                fontSize: 14,
-                                lineHeight: 1.55,
-                                color: MUTED,
-                              }}
-                            >
-                              {article.answer}
-                            </p>
+                            <p className="support-help-answer">{article.answer}</p>
                           ) : null}
                         </div>
                       );
@@ -1077,24 +830,12 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
                               key={conv.id}
                               type="button"
                               onClick={() => openHistory(conv)}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 12,
-                                width: "100%",
-                                textAlign: "left",
-                                padding: "14px",
-                                minHeight: 72,
-                                borderRadius: 12,
-                                border: `1px solid ${LINE}`,
-                                background: SURFACE,
-                                cursor: "pointer",
-                                fontFamily: FONT,
-                              }}
+                              className="support-card"
+                              style={{ marginBottom: 0, minHeight: 72 }}
                             >
                               <span style={{ minWidth: 0, flex: 1 }}>
                                 <span style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-                                  <span style={{ fontWeight: 700, fontSize: 14, color: INK }}>
+                                  <span className="support-card-title">
                                     {formatConvWhen(conv.updated_at)}
                                   </span>
                                   {isOpen ? (
@@ -1103,17 +844,7 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
                                     </span>
                                   ) : null}
                                 </span>
-                                <span
-                                  style={{
-                                    display: "block",
-                                    fontSize: 13,
-                                    color: MUTED,
-                                    marginTop: 3,
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
+                                <span className="support-card-meta" style={{ fontSize: 13 }}>
                                   {preview || (isOpen ? "Conversation en cours" : "Conversation clôturée")}
                                 </span>
                               </span>
@@ -1136,21 +867,10 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
                         })}
                       </div>
                     ) : (
-                      <div
-                        style={{
-                          flex: 1,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          textAlign: "center",
-                          padding: "24px 8px",
-                          gap: 8,
-                        }}
-                      >
+                      <div className="support-empty">
                         <MessageCircle size={36} color="#9aa8b6" />
-                        <div style={{ fontWeight: 800, fontSize: 16, marginTop: 8 }}>Aucun message</div>
-                        <p style={{ margin: "0 0 16px", fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
+                        <div className="support-empty-title">Aucun message</div>
+                        <p className="support-empty-text">
                           Les messages de l’équipe s’affichent ici
                         </p>
                         <AskButton />
@@ -1165,14 +885,7 @@ export default function SupportBubble({ aboveBottomNav = false, user = null }) {
                 )}
               </div>
 
-              <nav
-                aria-label="Support"
-                style={{
-                  display: "flex",
-                  borderTop: `1px solid ${LINE}`,
-                  background: SURFACE,
-                }}
-              >
+              <nav aria-label="Support" className="support-nav">
                 {tabBtn("home", "Accueil", Home)}
                 {tabBtn("help", "Aide", CircleHelp)}
                 {tabBtn("messages", "Messages", MessageCircle)}

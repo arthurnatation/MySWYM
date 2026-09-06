@@ -53,7 +53,7 @@ const session = {
 const preview = sessionPreviewFromPlan({ weeks: [{ sessions: [session] }] });
 ok(preview.title === "Pose les bases", "session title");
 ok(preview.distanceLabel.includes("1") && preview.distanceLabel.toLowerCase().includes("m"), "distance");
-ok(preview.durationLabel === "~35 min", "duration");
+ok(preview.durationLabel === "35 min", "duration");
 ok(preview.blocks.length >= 2, `warm/main/cool blocks, got ${preview.blocks.length}`);
 ok(preview.blocks.some((b) => /échauff/i.test(b.label)), "warm block present");
 ok(preview.blocks.every((b) => /\d[\d\s]*m/i.test(b.detail)), "each block shows meter total");

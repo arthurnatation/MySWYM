@@ -24,12 +24,15 @@ import { rewritePlanPaceMarkers } from "./lib/natation-sheet/pace-placeholders.j
 import { buildSessionProvenance } from "./lib/session-provenance.js";
 import { buildCoachPlanWeeks, shouldUseCoachGenerator, buildCompetitionSessions, competitionSessionCount, COMPETITION_TIP, buildProgressionLoopSession, buildProgressionLoopWeek, expandLoopWeekSessions, formatLoopSessionTitle, formatLoopWeekSessionTitle, loopDisplaySession, loopSessionOrdinalIndex, withLoopSessionTitle, isoWeekKey, usesSessionLoop } from "./lib/swim-plan-bridge.js";
 import { FONT, FONT_DISPLAY } from "./theme/brand.js";
-import { G, G_DARK, applyTheme } from "./theme/palette.js";
+import { G, G_SOFT, applyTheme } from "./theme/palette.js";
+import { unlockUiSounds } from "./lib/ui-sounds.js";
 import PlanRevealView from "./PlanRevealView.jsx";
 import FirstSwimTip, { hasSeenFirstSwimTip } from "./FirstSwimTip.jsx";
 import CoachCard from "./CoachCard.jsx";
 import PlanTab from "./PlanTab.jsx";
 import Dashboard, { HomeBadgesSection } from "./Dashboard.jsx";
+import AnalyseTab from "./AnalyseTab.jsx";
+import HistoriqueTab from "./HistoriqueTab.jsx";
 import { registerTabUi } from "./tab-ui-registry.js";
 import {
   getSessionRemindersEnabled,
@@ -43,8 +46,8 @@ import SessionCompleteView from "./SessionCompleteView.jsx";
 import ProfileNudgeCard from "./ProfileNudgeCard.jsx";
 import Btn from "./ui/Btn.jsx";
 import WeekStatRing from "./ui/WeekStatRing.jsx";
-import ProfileSection from "./ui/ProfileSection.jsx";
 import { shouldShowPlanReveal, revealMinWaitMs, findNextSession, sessionCardModel, sessionWhyLine } from "./lib/plan-reveal.js";
+import { bootElapsedMs, isBootWarm, remainingColdBootMs } from "./lib/boot-warm.js";
 import {
   dismissProfileNudge,
   isProfileNudgeDismissed,
@@ -96,7 +99,6 @@ import {
 } from "./lib/swim-pace.js";
 import PyramidBlockViz, { parsePyramidLine } from "./PyramidBlockViz.jsx";
 import WorkoutPrepView from "./workout/WorkoutPrepView.jsx";
-import { buildWorkoutView } from "./lib/workout-display.js";
 import { toCoachDetailLines } from "./lib/sports-engine/coach-restitution.js";
 import { prettifySessionDetailLine } from "./lib/sports-engine/session-labels.js";
 
@@ -115,7 +117,8 @@ import {
   fetchUserPlansLegacy,
 } from "./lib/plan-account.js";
 import { BADGE_DEFS, computeStats, checkBadges } from "./lib/plan-stats.js";
-import { AppShell, BottomNav, Loading, AppTopBar } from "./app-shell/index.js";
+import { AppShell, AppTabShell, BottomNav, Loading, AppTopBar } from "./app-shell/index.js";
+import PublicLoading from "./app-shell/PublicLoading.jsx";
 import {
   GOALS,
   CATEGORIES,
@@ -151,6 +154,7 @@ import HomeBlogCarousel from "./HomeBlogCarousel.jsx";
 import FeedbackModal from "./sheets/FeedbackModal.jsx";
 import SessionFeedbackSheet from "./sheets/SessionFeedbackSheet.jsx";
 import PlanReadySheet from "./sheets/PlanReadySheet.jsx";
+import SessionPrepSheet from "./sheets/SessionPrepSheet.jsx";
 import UpgradeModal from "./sheets/UpgradeModal.jsx";
 import ConfirmSheet from "./sheets/ConfirmSheet.jsx";
 import CancelSurveySheet from "./sheets/CancelSurveySheet.jsx";
@@ -160,7 +164,6 @@ import WhatsNewSheet, {
   markWhatsNewSeen,
   syncWhatsNewSeenIfNeeded,
 } from "./sheets/WhatsNewSheet.jsx";
-import HistorySessionSheet from "./sheets/HistorySessionSheet.jsx";
 import { resolveReferralCode } from "./lib/referral.js";
 import {
   resolveAvatarUrl,
@@ -213,8 +216,17 @@ const AUTH_PATHS = { "/connexion": "password", "/inscription": "register" };
 const isAuthPath = (pathname) => pathname in AUTH_PATHS;
 
 applyTheme();
+if (typeof window !== "undefined") {
+  const unlockOnce = () => {
+    unlockUiSounds();
+    window.removeEventListener("pointerdown", unlockOnce);
+    window.removeEventListener("keydown", unlockOnce);
+  };
+  window.addEventListener("pointerdown", unlockOnce, { once: true });
+  window.addEventListener("keydown", unlockOnce, { once: true });
+}
 
-// Couleurs lues sur G (DA dark). Plus de pastels light ni d’orange Strava.
+// Couleurs lues sur G (DA soft mist clair).
 const TYPE_KIND = {
   ENDURANCE:    { Icon: Waves, color: "blue", bg: "blueLight", tooltip: "Nage à allure confortable, tu pourrais parler. C'est la base de toute progression." },
   SEUIL:        { Icon: Activity, color: "gold", bg: "goldLight", tooltip: "Effort soutenu mais contrôlé, tu travailles à la limite de ton confort. Améliore ton endurance." },
@@ -230,23 +242,23 @@ function getTypeMeta(type) {
 
 const css = `
   :root {
-    --myswym-bg: ${G_DARK.bg};
-    --myswym-surface: ${G_DARK.surface};
-    --myswym-ink: ${G_DARK.ink};
-    --myswym-ink-light: ${G_DARK.inkLight};
-    --myswym-blue: ${G_DARK.blue};
-    --myswym-blue-light: ${G_DARK.blueLight};
-    --myswym-grey-light: ${G_DARK.greyLight};
-    --myswym-nav-bg: ${G_DARK.navGlass};
-    --myswym-nav-border: ${G_DARK.greyLight};
-    --myswym-glass: ${G_DARK.glass};
+    --myswym-bg: ${G_SOFT.bg};
+    --myswym-surface: ${G_SOFT.surface};
+    --myswym-ink: ${G_SOFT.ink};
+    --myswym-ink-light: ${G_SOFT.inkLight};
+    --myswym-blue: ${G_SOFT.blue};
+    --myswym-blue-light: ${G_SOFT.blueLight};
+    --myswym-grey-light: ${G_SOFT.greyLight};
+    --myswym-nav-bg: ${G_SOFT.navGlass};
+    --myswym-nav-border: ${G_SOFT.greyLight};
+    --myswym-glass: ${G_SOFT.glass};
     --bottom-nav-h: 64px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
     --safe-top: env(safe-area-inset-top, 0px);
     --app-pad-x: 16px;
     --app-max: 100%;
     --sheet-max: 100%;
-    --nav-lift: 0px;
+    --nav-lift: 12px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { -webkit-text-size-adjust: 100%; }
@@ -338,15 +350,21 @@ const css = `
   }
   .bottom-nav {
     position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    left: 50%;
+    right: auto;
     z-index: 100;
-    background: var(--myswym-nav-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid var(--myswym-nav-border);
-    padding-bottom: var(--safe-bottom);
+    width: min(var(--app-max), calc(100vw - 40px));
+    max-width: 380px;
+    transform: translateX(-50%);
+    bottom: max(var(--nav-lift), env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 999px;
+    box-shadow: 0 12px 36px rgba(50, 110, 180, 0.14);
+    padding-bottom: 0;
+    overflow: hidden;
   }
   .bottom-nav-inner {
     width: 100%;
@@ -377,14 +395,6 @@ const css = `
     bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 16px + 66px);
     width: min(380px, calc(100vw - 32px));
     height: min(560px, calc(100dvh - var(--bottom-nav-h) - var(--safe-bottom) - var(--nav-lift) - 108px));
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border-radius: 16px;
-    background: #ffffff;
-    color: #0b1526;
-    border: 1px solid rgba(11, 21, 38, 0.08);
-    box-shadow: 0 18px 50px rgba(0, 5, 20, 0.45);
   }
   .support-widget--bare {
     bottom: calc(16px + var(--safe-bottom) + 66px);
@@ -397,9 +407,9 @@ const css = `
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    background: rgba(0,0,0,0.55);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(15, 40, 80, 0.22);
+    backdrop-filter: blur(10px) saturate(1.1);
+    -webkit-backdrop-filter: blur(10px) saturate(1.1);
   }
   .sheet-panel {
     width: 100%;
@@ -420,7 +430,9 @@ const css = `
   .h-scroll::-webkit-scrollbar { display: none; }
   .myswym-app {
     min-height: 100dvh;
-    background: var(--myswym-bg);
+    background:
+      radial-gradient(ellipse 90% 55% at 50% -15%, rgba(126, 184, 245, 0.45), transparent 55%),
+      var(--myswym-bg);
   }
   .sticky-app-bar {
     position: sticky;
@@ -439,8 +451,8 @@ const css = `
     }
     body {
       background:
-        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,107,253,0.22), transparent 55%),
-        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(0,107,253,0.10), transparent 50%),
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,107,253,0.10), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(26,168,194,0.06), transparent 50%),
         var(--myswym-bg);
       background-attachment: fixed;
     }
@@ -463,21 +475,14 @@ const css = `
       box-shadow: 0 24px 64px rgba(25,28,30,0.22);
     }
     .bottom-nav {
-      left: 50%;
-      right: auto;
       width: min(var(--app-max), calc(100vw - 32px));
-      transform: translateX(-50%);
       bottom: var(--nav-lift);
-      border-radius: 22px;
-      border: 1px solid rgba(0,107,253,0.22);
-      border-top: 1px solid rgba(0,107,253,0.22);
-      box-shadow: 0 12px 40px rgba(0,107,253,0.18);
-      padding-bottom: 0;
-      overflow: hidden;
+      border-color: rgba(255, 255, 255, 0.9);
+      box-shadow: 0 12px 40px rgba(15, 60, 120, 0.14);
     }
     html[data-theme="dark"] .bottom-nav {
-      border-color: rgba(0,107,253,0.22);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      border-color: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
     }
     .myswym-app {
       background: transparent;
@@ -1133,9 +1138,11 @@ function appendPaceHistory(profile, { pace100, week, source = "manual" }) {
   return { ...profile, paceHistory: hist };
 }
 
-/** Bloc unique : T100 + zones utiles + projection 2/5 ans. */
-const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
-  const [val, setVal] = useState(pace100 || null);
+/** Bloc unique : T50 / T100 / T400 + zones utiles + projection 2/5 ans. */
+const MonAllureCard = ({ profile, pace100, pace50 = null, pace400 = null, isPremium, onSave, onUpgrade }) => {
+  const [val100, setVal100] = useState(pace100 || null);
+  const [val50, setVal50] = useState(pace50 || null);
+  const [val400, setVal400] = useState(pace400 || null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -1143,13 +1150,18 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
   const isDiscovery = profile?.level === "découverte" || profile?.level === "beginner";
 
   useEffect(() => {
-    setVal(pace100 || null);
+    setVal100(pace100 || null);
+    setVal50(pace50 || null);
+    setVal400(pace400 || null);
     setSaved(false);
-  }, [pace100]);
+  }, [pace100, pace50, pace400]);
 
-  const activePace = val || pace100 || null;
-  const hasChange = val !== (pace100 || null);
-  const canSave = isPremium && !!val && hasChange && !saving;
+  const activePace = val100 || pace100 || null;
+  const hasChange =
+    val100 !== (pace100 || null)
+    || val50 !== (pace50 || null)
+    || val400 !== (pace400 || null);
+  const canSave = isPremium && hasChange && !saving;
   const zoneMult = appZoneMultForT100(activePace);
   const fmtZone = (s) => `${Math.floor(s / 60)}'${String(Math.round(s % 60)).padStart(2, "0")}"`;
 
@@ -1157,7 +1169,11 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
     if (!canSave) return;
     setSaving(true);
     try {
-      await Promise.resolve(onSave?.(val));
+      await Promise.resolve(onSave?.({
+        pace100: val100,
+        pace50: val50,
+        pace400: val400,
+      }));
       setSaved(true);
     } finally {
       setSaving(false);
@@ -1187,6 +1203,26 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
     evolSvg = { SVG_W, SVG_H, xOf, yOf, projPts, startPace, endPace, gainSec, gainPct, paceAt2, paceAt5 };
   }
 
+  const lockedPaceBtn = (placeholder, aria) => (
+    <button
+      type="button"
+      onClick={onUpgrade}
+      aria-label={aria}
+      style={{
+        display: "block", width: "100%", boxSizing: "border-box",
+        padding: "14px 12px", fontSize: 22,
+        fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif", fontWeight: 700,
+        textAlign: "center", letterSpacing: "0.06em",
+        border: `2px solid ${G.greyLight}`,
+        borderRadius: 14, outline: "none",
+        background: G.greyXLight, color: G.greyMid,
+        cursor: "pointer", opacity: 0.9,
+      }}
+    >
+      {placeholder}
+    </button>
+  );
+
   return (
     <div className="fade-up" style={{
       background: G.surface,
@@ -1206,7 +1242,7 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
             type="button"
             onClick={() => setInfoOpen((o) => !o)}
             aria-expanded={infoOpen}
-            aria-label={infoOpen ? "Masquer l’aide T100" : "Pourquoi et comment renseigner le T100"}
+            aria-label={infoOpen ? "Masquer l’aide allures" : "Pourquoi et comment renseigner les temps"}
             style={{
               width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
               border: `1px solid ${G.blueMid}55`,
@@ -1230,47 +1266,61 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
         }}>
           <p style={{ margin: "0 0 8px" }}>
             <strong style={{ color: G.ink }}>Pourquoi&nbsp;?</strong>{" "}
-            Ton meilleur 100&nbsp;m crawl (T100) calibre zones, allures et projection.
+            Le 100&nbsp;m (T100) calibre zones et séances. Les 50 et 400&nbsp;m aident à mieux te situer (on les branchera ensuite).
           </p>
           <p style={{ margin: 0 }}>
             <strong style={{ color: G.ink }}>Comment&nbsp;?</strong>{" "}
-            100&nbsp;m crawl, départ dans l’eau, note ton meilleur temps.
+            Crawl, départ dans l’eau, note ton meilleur temps sur chaque distance.
           </p>
         </div>
       )}
 
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
-          Meilleur temps 100 m
+      <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: G.grey, marginBottom: 8 }}>
+            Meilleur temps 50 m
+          </div>
+          {isPremium ? (
+            <PaceInput
+              placeholder="0:42"
+              value={val50}
+              onChange={(v) => { setVal50(v); setSaved(false); }}
+              maxLen={3}
+              minSec={18}
+              maxSec={150}
+            />
+          ) : lockedPaceBtn("0:42", "Débloquer le temps au 50 m avec Premium")}
         </div>
-        {isPremium ? (
-          <PaceInput
-            placeholder="1:45"
-            value={val}
-            onChange={(v) => { setVal(v); setSaved(false); }}
-            maxLen={3}
-            minSec={45}
-            maxSec={5 * 60}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={onUpgrade}
-            aria-label="Débloquer le temps au 100 m avec Premium"
-            style={{
-              display: "block", width: "100%", boxSizing: "border-box",
-              padding: "14px 12px", fontSize: 22,
-              fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif", fontWeight: 700,
-              textAlign: "center", letterSpacing: "0.06em",
-              border: `2px solid ${G.greyLight}`,
-              borderRadius: 14, outline: "none",
-              background: G.greyXLight, color: G.greyMid,
-              cursor: "pointer", opacity: 0.9,
-            }}
-          >
-            1:45
-          </button>
-        )}
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: G.grey, marginBottom: 8 }}>
+            Meilleur temps 100 m
+          </div>
+          {isPremium ? (
+            <PaceInput
+              placeholder="1:45"
+              value={val100}
+              onChange={(v) => { setVal100(v); setSaved(false); }}
+              maxLen={3}
+              minSec={45}
+              maxSec={5 * 60}
+            />
+          ) : lockedPaceBtn("1:45", "Débloquer le temps au 100 m avec Premium")}
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: G.grey, marginBottom: 8 }}>
+            Meilleur temps 400 m
+          </div>
+          {isPremium ? (
+            <PaceInput
+              placeholder="7:30"
+              value={val400}
+              onChange={(v) => { setVal400(v); setSaved(false); }}
+              maxLen={4}
+              minSec={200}
+              maxSec={20 * 60}
+            />
+          ) : lockedPaceBtn("7:30", "Débloquer le temps au 400 m avec Premium")}
+        </div>
       </div>
 
       {isPremium ? (
@@ -1294,12 +1344,14 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
           </button>
           {saved && (
             <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 600, color: G.mint, textAlign: "center" }}>
-              Temps enregistré, tes prochaines séances s’adaptent.
+              Temps enregistrés. Le T100 adapte tes prochaines séances.
             </p>
           )}
           {!saved && pace100 && !hasChange && (
             <p style={{ margin: "0 0 12px", fontSize: 12, color: G.grey, textAlign: "center" }}>
               Actif : {secToDisplay(pace100)} /100&nbsp;m
+              {pace50 ? ` · ${secToDisplay(pace50)} /50 m` : ""}
+              {pace400 ? ` · ${secToDisplay(pace400)} /400 m` : ""}
             </p>
           )}
         </>
@@ -1321,7 +1373,7 @@ const MonAllureCard = ({ profile, pace100, isPremium, onSave, onUpgrade }) => {
 
       {isPremium && activePace && (
         <div style={{ marginBottom: showEvolution ? 16 : 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: G.grey, marginBottom: 8 }}>
             Zones utiles
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1485,7 +1537,7 @@ const UpdateProgramCard = ({ profile, isPremium, onUpgrade, onSave, stravaBestPa
 
   if (!isPremium) {
     return (
-      <div style={{ background: G.surface, borderRadius: 18, padding: "18px 16px", marginBottom: 16, border: `1px solid ${G.greyLight}`, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+      <div className="ms-glass-card" style={{ borderRadius: 18, padding: "18px 16px", marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
           <Lock size={14} color={G.greyMid} />
           <h3 style={{ fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: "0.04em", color: G.ink, margin: 0 }}>Modifier mon programme</h3>
@@ -1555,7 +1607,7 @@ const UpdateProgramCard = ({ profile, isPremium, onUpgrade, onSave, stravaBestPa
   }
 
   return (
-    <div style={{ background: G.surface, borderRadius: 18, padding: "18px 16px", marginBottom: 16, border: `1px solid ${G.greyLight}`, boxShadow: "0 2px 8px rgba(0,0,0,0.04)" }}>
+    <div className="ms-glass-card" style={{ borderRadius: 18, padding: "18px 16px", marginBottom: 16 }}>
       <h3 style={{ fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif", fontSize: 16, fontWeight: 700, letterSpacing: "0.04em", color: G.ink, marginBottom: 4 }}>Modifier mon programme</h3>
       <p style={{ fontSize: 13, color: G.grey, marginBottom: 16 }}>Tes semaines déjà entamées et tes séances validées sont conservées. La nouvelle fréquence s&apos;applique aux semaines pas encore commencées.</p>
 
@@ -2608,7 +2660,7 @@ const ResetPasswordScreen = ({ onDone, showBrandHeader = true }) => {
     <div style={{ maxWidth: 440, margin: "0 auto", padding: "0 20px", paddingTop: showBrandHeader ? 64 : 96, paddingBottom: 40 }}>
       {showBrandHeader && (
         <div style={{ display: "flex", alignItems: "center", marginBottom: 44 }}>
-          <BrandLogo variant="wordmark" height={22} onDark />
+          <BrandLogo variant="wordmark" height={22} />
         </div>
       )}
       <div className="fade-up">
@@ -3315,12 +3367,24 @@ const ShareModal = ({ session, goalLabel, badge = null, onClose }) => {
   };
 
   return (
-    <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="sheet-panel scale-in" style={{ background: G.surface, borderRadius: "24px 24px 0 0", padding: "28px 20px", paddingBottom: "max(28px, env(safe-area-inset-bottom))" }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: G.greyLight, margin: "0 auto 24px" }} />
-        <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 700, letterSpacing: "-0.02em", color: G.ink, marginBottom: 18, textAlign: "center" }}>
-          Partage ta séance
-        </h3>
+    <div
+      className="sheet-overlay ms-soft-overlay ms-soft-overlay--stacked"
+      style={{ zIndex: 560 }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="sheet-panel scale-in ms-soft-sheet" style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom))" }}>
+        <div className="ms-soft-sheet-head">
+          <div className="ms-sheet-handle" />
+          <div className="ms-soft-sheet-head-row">
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h3 className="ms-soft-sheet-title" style={{ margin: 0 }}>Partage ta séance</h3>
+            </div>
+            <button type="button" onClick={onClose} aria-label="Fermer" className="ms-soft-sheet-close">
+              <X size={18} color="currentColor" />
+            </button>
+          </div>
+        </div>
+        <div className="ms-soft-sheet-body">
         <div style={{ background: `linear-gradient(145deg, #06101F 0%, #0033A0 100%)`, borderRadius: 20, padding: 24, marginBottom: 16, position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -40, right: -20, width: 160, height: 160, borderRadius: "50%", background: "rgba(0,87,253,0.35)" }} />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
@@ -3372,6 +3436,7 @@ const ShareModal = ({ session, goalLabel, badge = null, onClose }) => {
             : <><Copy size={14} /> Copier pour Strava / WhatsApp</>}
         </button>
         <button onClick={onClose} style={{ width: "100%", marginTop: 4, padding: "12px", background: "none", border: "none", color: G.grey, cursor: "pointer", fontSize: 13 }}>Fermer</button>
+        </div>
       </div>
     </div>
   );
@@ -4092,7 +4157,7 @@ const SessionBlock = ({ detail, index, workIndex, accent, children = null }) => 
 // ── SESSION CARD ──────────────────────────────────────────────────────────
 const SessionCard = ({
   session, weekIndex, sessionIndex, onComplete, onShare, onEditFeedback,
-  defaultExpanded = false, isPremium = false, onUpgrade, hideCheckbox = false,
+  isPremium = false, onUpgrade, hideCheckbox = false,
   analyticsCtx = null,
   displayTitle = null,
 }) => {
@@ -4103,15 +4168,13 @@ const SessionCard = ({
   const titleShown = displayTitle || session.title;
   const [showTooltip, setShowTooltip] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [prepOpen, setPrepOpen] = useState(false);
   const [poolOpen, setPoolOpen] = useState(false);
   const viewedRef = useRef(false);
   const startedRef = useRef(false);
   const intensity = parseIntensity(session.intensity);
   const details = expandCompoundDetailLines(session.details || []);
   const detailGroups = groupSessionDetails(details);
-  const workoutPreview = buildWorkoutView(session);
-  const phaseCount = workoutPreview.sections?.length || 0;
   const blockCount = detailGroups.reduce((n, g) => {
     if (g.type === "block") return n + 1;
     if (g.type === "work") return n + g.lines.length;
@@ -4149,11 +4212,6 @@ const SessionCard = ({
       volume: props.volume,
     }, { onceKey: `session_started:${sessionOnceBase}` });
   };
-
-  useEffect(() => {
-    if (defaultExpanded) emitSessionViewed();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleCheckboxClick = (e) => {
     e.stopPropagation();
@@ -4303,7 +4361,7 @@ const SessionCard = ({
               </span>
             )}
           </div>
-          {!locked && intensity.cue && !expanded && (
+          {!locked && intensity.cue && (
             <p style={{ fontSize: 12, color: G.grey, marginTop: 8, lineHeight: 1.4, marginBottom: 0 }}>
               {intensity.cue.charAt(0).toUpperCase() + intensity.cue.slice(1)}
             </p>
@@ -4371,49 +4429,39 @@ const SessionCard = ({
             </button>
           ) : (
             <>
-          <button
-            type="button"
-            onClick={() => {
-              setExpanded((v) => {
-                const next = !v;
-                if (next) emitSessionViewed();
-                return next;
-              });
+          <div className="ms-session-card-cta" style={{ padding: "0 16px 16px" }}>
+            <button
+              type="button"
+              className="ms-pill-cta"
+              onClick={() => {
+                emitSessionViewed();
+                setPrepOpen(true);
+              }}
+            >
+              {resolved ? "Voir la séance" : "Préparer la séance"}
+            </button>
+          </div>
+          <SessionPrepSheet
+            open={prepOpen}
+            session={session}
+            colors={G}
+            accent={{ bg: tm.bg, color: tm.color }}
+            isPremium={isPremium}
+            profile={analyticsCtx?.profile || null}
+            planId={analyticsCtx?.planId || null}
+            showStart={!resolved}
+            onClose={() => setPrepOpen(false)}
+            onUpgrade={() => onUpgrade?.("session_locked")}
+            onStart={() => {
+              if (!isPremium) {
+                onUpgrade?.("session_locked");
+                return;
+              }
+              emitSessionStarted();
+              setPrepOpen(false);
+              setPoolOpen(true);
             }}
-            style={{
-              width: "100%", padding: "14px 16px", minHeight: 48,
-              background: expanded ? G.blueLight : "transparent",
-              border: "none", borderTop: `1px solid ${G.greyLight}`,
-              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between",
-              color: G.inkLight, fontSize: 13, fontWeight: 600,
-            }}
-          >
-            <span>{expanded ? "Masquer le détail" : phaseCount >= 2 ? `${phaseCount} phases` : `${blockCount} bloc${blockCount > 1 ? "s" : ""}`}</span>
-            {expanded ? <ChevronUp size={14} color={G.greyMid} /> : <ChevronDown size={14} color={G.greyMid} />}
-          </button>
-          {expanded && (
-            <div style={{ background: G.blueLight, padding: "12px 12px 16px" }}>
-              <WorkoutPrepView
-                session={session}
-                colors={G}
-                accent={{ bg: tm.bg, color: tm.color }}
-                isPremium={isPremium}
-                embedded
-                showStart={!resolved}
-                profile={analyticsCtx?.profile || null}
-                planId={analyticsCtx?.planId || null}
-                whyLine={null}
-                onUpgrade={() => onUpgrade?.("session_locked")}
-                onTooHard={undefined}
-                onStart={() => {
-                  if (!isPremium) {
-                    onUpgrade?.("session_locked");
-                    return;
-                  }
-                  emitSessionStarted();
-                  setPoolOpen(true);
-                }}
-              />
+            exportBar={(
               <div style={{ marginTop: 14 }}>
                 <SessionExportBar
                   session={session}
@@ -4422,8 +4470,8 @@ const SessionCard = ({
                   onShare={onShare}
                 />
               </div>
-            </div>
-          )}
+            )}
+          />
           {poolOpen && (
             <Suspense fallback={null}><PoolMode
               session={session}
@@ -4433,16 +4481,8 @@ const SessionCard = ({
               onClose={() => setPoolOpen(false)}
               onFinish={() => {
                 setPoolOpen(false);
-                if (!resolved && isPremium) onComplete?.("done");
+                if (!resolved && isPremium) onComplete?.(weekIndex, sessionIndex, "done");
               }}
-              onTooHard={
-                !resolved && isPremium
-                  ? () => {
-                      setPoolOpen(false);
-                      onEditFeedback?.(weekIndex, sessionIndex);
-                    }
-                  : undefined
-              }
             /></Suspense>
           )}
             </>
@@ -4478,17 +4518,15 @@ const WeekCard = ({ week, weekIndex, onComplete, onShare, onEditFeedback, isCurr
   const progress = total > 0 ? done / total : 0;
 
   return (
-    <div style={{
-      background: G.surface,
-      borderRadius: 20,
+    <div
+      className={`ms-week-card${isCurrentWeek ? " is-current" : ""}`}
+      style={{
+      borderRadius: 26,
       overflow: "hidden",
       border: isCurrentWeek
-        ? `1.5px solid ${G.blue}`
-        : allDone ? `1px solid ${allActuallyDone ? G.mint : G.gold}35` : `1px solid ${G.greyLight}`,
+        ? undefined
+        : allDone ? `1px solid ${allActuallyDone ? G.mint : G.gold}45` : undefined,
       marginBottom: 12,
-      boxShadow: isCurrentWeek
-        ? "0 8px 28px rgba(53,93,163,0.12)"
-        : "0 1px 3px rgba(25,28,30,0.03), 0 6px 16px rgba(53,93,163,0.04)",
     }}>
       {isCurrentWeek && (
         <div style={{ height: 3, background: `linear-gradient(90deg, ${G.blue}, ${G.blueMid})` }} />
@@ -4506,7 +4544,7 @@ const WeekCard = ({ week, weekIndex, onComplete, onShare, onEditFeedback, isCurr
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
               <span style={{ fontSize: 17, fontWeight: 700, fontFamily: FONT_DISPLAY, color: G.ink, letterSpacing: "-0.03em" }}>Semaine {week.number}</span>
               {isCurrentWeek && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: G.white, background: G.blue, padding: "3px 8px", borderRadius: 6, letterSpacing: "0.04em" }}>En cours</span>
+                <span className="ms-chip is-active" style={{ height: 24, fontSize: 10, padding: "0 10px" }}>En cours</span>
               )}
               {allDone && !isCurrentWeek && (
                 <span style={{
@@ -4581,7 +4619,6 @@ const WeekCard = ({ week, weekIndex, onComplete, onShare, onEditFeedback, isCurr
               onEditFeedback={onEditFeedback}
               isPremium={isPremium}
               onUpgrade={onUpgrade}
-              defaultExpanded={isCurrentWeek && i === week.sessions.findIndex(x => !isSessionResolved(x))}
               analyticsCtx={analyticsCtx ? {
                 ...analyticsCtx,
                 planWeek: week?.number ?? weekIndex + 1,
@@ -4771,14 +4808,13 @@ const ProgressionLoopView = ({
   onComplete,
   onAdvanceLoop,
   onSwitchPlan,
-  onAddPlan,
   onDeletePlan,
   onRegenerate,
   onUpgrade,
   onReset,
   onShare,
   onEditFeedback,
-  showHistory = true,
+  showHistory: _showHistory = true,
   embed = false,
   user,
   onOpenMenu,
@@ -4792,38 +4828,17 @@ const ProgressionLoopView = ({
     ? (openSessionIndex >= 0 ? weekSessions[openSessionIndex] : weekSessions[0])
     : (loopDisplaySession(plan) || weekSessions[0]);
   const resolved = session ? isSessionResolved(session) : true;
-  const stats = computeStats(plan);
   const [poolOpen, setPoolOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [historySession, setHistorySession] = useState(null);
-  const [copiedRef, setCopiedRef] = useState(null);
-  const HISTORY_PREVIEW = 3;
-  // ordinal = rang réel de validation, conservé malgré le slice/reverse d'affichage
-  const historyItems = (Array.isArray(plan?.history) ? plan.history : [])
-    .map((s, idx) => ({ session: s, ordinal: idx }))
-    .slice(-12)
-    .reverse();
-  const historyVisible = historyOpen ? historyItems : historyItems.slice(0, HISTORY_PREVIEW);
-  const copyHistoryRef = async (key, line) => {
-    if (!line) return;
-    try {
-      await navigator.clipboard.writeText(line);
-      setCopiedRef(key);
-      setTimeout(() => setCopiedRef(null), 2000);
-    } catch {
-      /* clipboard indisponible, la réf reste lisible à l'écran */
-    }
+
+  const loopPad = {
+    paddingBottom: embed ? 16 : "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)",
+    minHeight: embed ? 0 : "100dvh",
   };
-  const loopTitle = findGoalById(profile?.goal)?.label
-    || CATEGORIES.find((c) => c.id === profile?.category)?.label
-    || "Nager & Progresser";
-  const daysToEvent = profile?.eventDate
-    ? Math.max(0, Math.ceil((new Date(profile.eventDate) - new Date()) / 86400000))
-    : null;
+  const LoopShell = embed ? "div" : AppTabShell;
 
   if (!session) {
     return (
-      <div style={{ paddingBottom: embed ? 16 : "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)", minHeight: embed ? 0 : "100dvh" }}>
+      <LoopShell style={loopPad}>
         {!embed && (
           <AppTopBar
             user={user}
@@ -4832,21 +4847,19 @@ const ProgressionLoopView = ({
             plan={plan}
             onTabChange={onTabChange}
             onUpgrade={onUpgrade}
+            immersive
           />
         )}
         <div className="app-shell" style={{ paddingTop: 24 }}>
           <p style={{ color: G.grey }}>Aucune séance. Régénère ton programme.</p>
           <ResetConfirmButton onReset={onReset} variant="card" />
         </div>
-      </div>
+      </LoopShell>
     );
   }
 
   return (
-    <div style={{
-      paddingBottom: embed ? 16 : "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)",
-      minHeight: embed ? 0 : "100dvh",
-    }}>
+    <LoopShell style={loopPad}>
       {!embed && (
         <AppTopBar
           user={user}
@@ -4855,51 +4868,15 @@ const ProgressionLoopView = ({
           plan={plan}
           onTabChange={onTabChange}
           onUpgrade={onUpgrade}
+          immersive
         />
       )}
       {!embed && (
-        <div style={{
-          background: G.bg,
-          borderBottom: `1px solid rgba(142,179,255,0.10)`,
-        }}>
+        <div className="ms-app-subhead">
           <div className="app-shell" style={{ paddingTop: 14, paddingBottom: 12 }}>
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: G.ink, lineHeight: 1, margin: 0 }}>
-              {loopTitle}
-            </h1>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
-              <span style={{
-                fontSize: 12, fontWeight: 600, color: G.inkLight,
-                background: G.greyXLight, padding: "4px 9px", borderRadius: 8,
-              }}>
-                {multiSessionWeek
-                  ? `${weekSessions.filter(isSessionResolved).length}/${weekSessions.length} séances`
-                  : "Séance du jour"}
-              </span>
-              {daysToEvent != null && (
-                <span style={{
-                  fontSize: 12, fontWeight: 600, color: G.blue,
-                  background: G.blueLight, padding: "4px 9px", borderRadius: 8,
-                }}>
-                  J−{daysToEvent}
-                </span>
-              )}
-              {!isPremium && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: G.blue, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                  <Lock size={11} /> Essai requis
-                </span>
-              )}
-              {isPremium && stats.totalSessions > 0 && (
-                <span style={{ fontSize: 12, fontWeight: 600, color: G.mint }}>
-                  {stats.totalSessions} séance{stats.totalSessions > 1 ? "s" : ""} · {(stats.totalMeters / 1000).toFixed(1)} km
-                </span>
-              )}
-            </div>
-          </div>
-          <div className="app-shell" style={{ paddingBottom: 12 }}>
             <PlanSelector
               plans={plans}
               activePlanId={activePlanId}
-              onAddPlan={onAddPlan}
             />
           </div>
         </div>
@@ -4921,7 +4898,7 @@ const ProgressionLoopView = ({
           />
         ) : (
           <>
-        <div className="ms-session-card" style={{ marginBottom: 14, padding: "16px 18px 18px" }}>
+        <div className="ms-session-card is-glass" style={{ marginBottom: 14, padding: "16px 18px 18px" }}>
           <WorkoutPrepView
             session={session}
             colors={G}
@@ -5040,152 +5017,14 @@ const ProgressionLoopView = ({
             <Btn variant="blue" onClick={onUpgrade} style={{ width: "100%" }}>S’abonner : dès {PRICING.monthlyCommit.label}/mois</Btn>
           </div>
         )}
-
-        {/* Historique Premium, 3 visibles, le reste derrière « Voir plus » */}
-        {showHistory && isPremium && historyItems.length > 0 && (
-          <div style={{
-            background: G.surface, borderRadius: 18, padding: "16px",
-            border: `1px solid ${G.greyLight}`, marginBottom: 12,
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 4 }}>
-              Historique
-            </div>
-            <p style={{ fontSize: 13, color: G.grey, lineHeight: 1.4, margin: "0 0 12px" }}>
-              Touche une séance pour relire les blocs.
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {historyVisible.map(({ session: s, ordinal }, i) => {
-                const rowKey = `${s.title}-${ordinal}`;
-                const prov = buildSessionProvenance(s, {
-                  loopOrdinal: ordinal,
-                  profile,
-                  planId: activePlanId,
-                });
-                const label = formatLoopSessionTitle(ordinal);
-                return (
-                  <div
-                    key={rowKey}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      borderBottom: i < historyVisible.length - 1 ? `1px solid ${G.greyXLight}` : "none",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setHistorySession({ session: s, ordinal })}
-                      aria-label={`Voir ${label}`}
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        minHeight: 48,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 10,
-                        padding: "8px 0",
-                        border: "none",
-                        background: "none",
-                        cursor: "pointer",
-                        textAlign: "left",
-                      }}
-                    >
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: G.ink, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {label}
-                        </div>
-                        <div style={{ fontSize: 11, color: G.greyMid, marginTop: 2 }}>
-                          {s.distance} · {s.completed ? "Terminée" : "Abandonnée"}
-                        </div>
-                      </div>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                        {s.completed ? <Check size={14} color={G.mint} /> : <X size={14} color={G.coral} />}
-                        <ChevronRight size={16} color={G.greyMid} />
-                      </span>
-                    </button>
-                    {prov && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyHistoryRef(rowKey, prov.supportLine);
-                        }}
-                        title={prov.shortLabel}
-                        aria-label={`Copier la référence séance ${prov.refCode} pour le support`}
-                        style={{
-                          border: "none",
-                          background: "none",
-                          padding: "8px 0",
-                          cursor: "pointer",
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: G.greyMid,
-                          textDecoration: "underline",
-                          textUnderlineOffset: 2,
-                          fontVariantNumeric: "tabular-nums",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {copiedRef === rowKey ? "réf. copiée" : `réf. ${prov.refCode}`}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            {historyItems.length > HISTORY_PREVIEW && !historyOpen && (
-              <button
-                type="button"
-                onClick={() => setHistoryOpen(true)}
-                style={{
-                  width: "100%", marginTop: 10, minHeight: 44, borderRadius: 12,
-                  border: `1px solid ${G.greyLight}`, background: G.bg,
-                  color: G.blue, fontWeight: 700, fontSize: 13, cursor: "pointer",
-                }}
-              >
-                Voir plus
-              </button>
-            )}
-            {historyItems.length > HISTORY_PREVIEW && historyOpen && (
-              <button
-                type="button"
-                onClick={() => setHistoryOpen(false)}
-                style={{
-                  width: "100%", marginTop: 8, minHeight: 40, border: "none", background: "none",
-                  color: G.grey, fontWeight: 600, fontSize: 13, cursor: "pointer",
-                }}
-              >
-                Réduire
-              </button>
-            )}
-          </div>
-        )}
-
-        <HistorySessionSheet
-          open={!!historySession}
-          session={historySession?.session}
-          ordinal={historySession?.ordinal ?? 0}
-          accent={{
-            bg: getTypeMeta(historySession?.session?.type).bg,
-            color: getTypeMeta(historySession?.session?.type).color,
-          }}
-          isPremium={isPremium}
-          profile={profile}
-          planId={activePlanId}
-          onClose={() => setHistorySession(null)}
-          onUpgrade={onUpgrade}
-          onShare={onShare}
-        />
       </div>
-    </div>
+    </LoopShell>
   );
 };
 
 const PlanSelector = ({
   plans,
   activePlanId,
-  onAddPlan,
 }) => {
   const planList = plans || [];
   const activeEntry = planList.find((entry) => entry.id === activePlanId) || planList[0] || null;
@@ -5195,14 +5034,11 @@ const PlanSelector = ({
   if (!planList.length) return null;
 
   return (
-    <div style={{
+    <div className="ms-glass-card" style={{
       width: "100%",
       minHeight: 56,
       padding: "12px 16px",
       borderRadius: 18,
-      border: `1.5px solid ${G.greyLight}`,
-      background: G.surface,
-      boxShadow: "0 2px 10px rgba(25,28,30,0.04)",
       display: "flex",
       alignItems: "center",
       justifyContent: "space-between",
@@ -5222,27 +5058,6 @@ const PlanSelector = ({
           </div>
         )}
       </div>
-      {onAddPlan && (
-        <button
-          type="button"
-          onClick={onAddPlan}
-          style={{
-            flexShrink: 0,
-            minHeight: 40,
-            padding: "8px 12px",
-            borderRadius: 12,
-            cursor: "pointer",
-            border: `1.5px solid ${G.blue}`,
-            background: G.blueLight,
-            color: G.blue,
-            fontSize: 12,
-            fontWeight: 700,
-            whiteSpace: "nowrap",
-          }}
-        >
-          Nouveau plan
-        </button>
-      )}
     </div>
   );
 };
@@ -7840,12 +7655,27 @@ export default function App() {
     if (isAuthPath(window.location.pathname)) return "auth";
     return "onboarding";
   });
+  const [coldHold, setColdHold] = useState(() => !isBootWarm());
+  useEffect(() => {
+    if (!coldHold) return undefined;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const wait = remainingColdBootMs({
+      reduceMotion: reduce,
+      elapsed: bootElapsedMs(),
+    });
+    const t = window.setTimeout(() => setColdHold(false), wait);
+    return () => window.clearTimeout(t);
+  }, [coldHold]);
   const [activeTab, setActiveTab] = useState("home");
+  const lastDockTabRef = useRef("home");
   /** Navigation onglets : remonte en haut (y compris re-tap sur l’onglet actif). */
   const goTab = (tab) => {
     if (tab === activeTab) {
       scrollAppToTop();
       return;
+    }
+    if (activeTab === "home" || activeTab === "plan" || activeTab === "analyse" || activeTab === "history") {
+      lastDockTabRef.current = activeTab;
     }
     setActiveTab(tab);
   };
@@ -10328,28 +10158,41 @@ export default function App() {
     setFeedbackWeek(null);
   };
 
-  const handlePaceUpdate = (newPace100) => {
+  const handlePaceUpdate = (patchOrPace100) => {
     if (!activePlanEntry) return;
     if (!canUpdateProgram) {
       openUpgrade("trial_expired");
       return Promise.resolve();
     }
+    const patch =
+      patchOrPace100 && typeof patchOrPace100 === "object"
+        ? patchOrPace100
+        : { pace100: patchOrPace100 };
     const week = getCurrentWeekNumber(activePlanEntry.plan);
     const fromPace =
       Number(activePlanEntry.profile?.pace100) > 0
         ? Number(activePlanEntry.profile.pace100)
         : null;
-    const toPace = Number(newPace100) > 0 ? Number(newPace100) : null;
+    const nextPace100 =
+      patch.pace100 !== undefined ? patch.pace100 : activePlanEntry.profile?.pace100;
+    const toPace = Number(nextPace100) > 0 ? Number(nextPace100) : null;
     let nextProfile = {
       ...activePlanEntry.profile,
-      pace100: newPace100,
+      ...(patch.pace100 !== undefined ? { pace100: patch.pace100 } : {}),
+      ...(patch.pace50 !== undefined ? { pace50: patch.pace50 } : {}),
+      ...(patch.pace400 !== undefined ? { pace400: patch.pace400 } : {}),
     };
-    delete nextProfile.pace400;
-    nextProfile = appendPaceHistory(nextProfile, {
-      pace100: newPace100,
-      week,
-      source: "manual",
-    });
+    if (
+      patch.pace100 !== undefined &&
+      Number(patch.pace100) > 0 &&
+      Number(patch.pace100) !== Number(activePlanEntry.profile?.pace100)
+    ) {
+      nextProfile = appendPaceHistory(nextProfile, {
+        pace100: patch.pace100,
+        week,
+        source: "manual",
+      });
+    }
 
     // Recalcule D… / @… sur les séances déjà là (sans régénérer le contenu).
     let nextPlan = activePlanEntry.plan;
@@ -10564,7 +10407,6 @@ export default function App() {
       sessionsPerWeek: newFreq,
       ...(newPace100 !== undefined ? { pace100: newPace100 } : {}),
     };
-    delete newProfile.pace400;
     if (newPace100 !== undefined) {
       newProfile = appendPaceHistory(newProfile, {
         pace100: newPace100,
@@ -10818,7 +10660,7 @@ export default function App() {
   if (authLoading) return (
     <>
       <style>{css}</style>
-      <Loading />
+      {isAuthPath(window.location.pathname) ? <PublicLoading /> : <Loading />}
     </>
   );
 
@@ -10884,7 +10726,7 @@ export default function App() {
     </>
   );
 
-  if (screen === "loading" || waitingForAccess) return <><style>{css}</style><Loading /></>;
+  if (coldHold || screen === "loading" || waitingForAccess) return <><style>{css}</style><Loading /></>;
 
   if (isFrozen) {
     const freezePreview = plan?.weeks?.[0]?.sessions?.[0]
@@ -10921,7 +10763,7 @@ export default function App() {
           <div style={{ paddingTop: 84, paddingBottom: 40 }}>
             <div style={{ display: "flex", alignItems: "center", marginBottom: 40 }}>
               <div style={{ display: "flex", alignItems: "center" }}>
-                <BrandLogo variant="wordmark" height={22} onDark />
+                <BrandLogo variant="wordmark" height={22} />
               </div>
             </div>
             <OnboardingWizard
@@ -10998,13 +10840,63 @@ export default function App() {
           mode: questionnaireMode,
           onEditProfile: () => goTab("profile"),
         }} />}
-        {activeTab === "profile" && <ProfileTab  plan={plan} profile={activeProfile} user={user} onUserUpdate={setUser} onOpenMenu={() => setSettingsOpen(true)} onTabChange={goTab} onEquipmentChange={handleEquipmentChange} onSwimmerProfileChange={handleSwimmerProfileChange} />}
+        {activeTab === "analyse" && (
+          <AnalyseTab
+            plan={plan}
+            profile={activeProfile}
+            user={user}
+            isPremium={isPremium}
+            onOpenMenu={() => setSettingsOpen(true)}
+            onTabChange={goTab}
+            onUpgrade={(ctx) => openUpgrade(ctx || "trial_required")}
+            onPaceUpdate={handlePaceUpdate}
+            onValidateSession={handleComplete}
+          />
+        )}
+        {activeTab === "history" && (
+          <HistoriqueTab
+            plan={plan}
+            profile={activeProfile}
+            user={user}
+            isPremium={isPremium}
+            activePlanId={activePlanId}
+            onOpenMenu={() => setSettingsOpen(true)}
+            onTabChange={goTab}
+            onUpgrade={(ctx) => openUpgrade(ctx || "trial_required")}
+            onShare={openShare}
+          />
+        )}
+        {activeTab === "profile" && (
+          <ProfileTab
+            plan={plan}
+            profile={activeProfile}
+            user={user}
+            onUserUpdate={setUser}
+            onTabChange={goTab}
+            onBack={() => goTab(lastDockTabRef.current || "home")}
+            onEquipmentChange={handleEquipmentChange}
+            onSwimmerProfileChange={handleSwimmerProfileChange}
+            isPremium={isPremium}
+            onUpgrade={(ctx) => openUpgrade(ctx || "trial_required")}
+            onPortal={handlePortal}
+            onRefreshStatus={handleRefreshStatus}
+            onSignOut={handleSignOut}
+            onDeleteAccount={handleDeleteAccount}
+            referralSlot={<ReferralShareCard />}
+          />
+        )}
         <Suspense fallback={null}>
         {activeTab === "buddies" && hasSwumNav && <BuddyMatching user={user} profile={activeProfile} onOpenMenu={() => setSettingsOpen(true)} onTabChange={goTab} canUseBuddies={accessState.canUseBuddies} onUpgrade={(ctx) => openUpgrade(ctx || "buddies")} />}
         </Suspense>
 
-        <Suspense fallback={null}><SupportBubble aboveBottomNav user={user} /></Suspense>
-        <BottomNav active={activeTab} onChange={goTab} newBadge={newBadgeId !== null} hideBuddies={!hasSwumNav} lockBuddies={!accessState.canUseBuddies} />
+        <Suspense fallback={null}><SupportBubble aboveBottomNav={activeTab !== "profile"} user={user} /></Suspense>
+        {activeTab !== "profile" && (
+          <BottomNav
+            active={activeTab === "buddies" ? "analyse" : activeTab}
+            onChange={goTab}
+            newBadge={newBadgeId !== null}
+          />
+        )}
         <Suspense fallback={null}>
         <SettingsDrawer
           open={settingsOpen}
@@ -11012,32 +10904,16 @@ export default function App() {
           user={user}
           isPremium={isPremium}
           onUpgrade={() => openUpgrade()}
-          onPortal={handlePortal}
-          onRefreshStatus={handleRefreshStatus}
+          onGoHome={() => goTab("home")}
+          onGoPlan={() => goTab("plan")}
+          onGoAnalyse={() => goTab("analyse")}
+          onGoHistory={() => goTab("history")}
           onGoProfile={() => goTab("profile")}
           onGoBuddies={() => goTab("buddies")}
           showBuddies={hasSwumNav}
-          onSignOut={handleSignOut}
-          onDeleteAccount={handleDeleteAccount}
-          plan={plan}
-          profile={activeProfile}
-          onPaceUpdate={handlePaceUpdate}
-          onValidateSession={handleComplete}
-          connectionsSlot={(
-            <StravaSection
-              user={user}
-              plan={plan}
-              profile={activeProfile}
-              currentPace100={activeProfile?.pace100}
-              onPaceUpdate={handlePaceUpdate}
-              onValidateSession={handleComplete}
-              showProgramActions={false}
-              showDetails={false}
-              isPremium={isPremium}
-              onUpgrade={() => openUpgrade()}
-            />
-          )}
-          referralSlot={<ReferralShareCard />}
+          lockBuddies={!accessState.canUseBuddies}
+          showModifyPlan={!!plan || plans.length > 0}
+          onModifyPlan={handleAddPlan}
         />
         </Suspense>
 

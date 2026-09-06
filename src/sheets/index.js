@@ -1,3 +1,4 @@
+export { default as SoftMistSheet } from "./SoftMistSheet.jsx";
 export { default as FeedbackModal } from "./FeedbackModal.jsx";
 export { default as SessionFeedbackSheet } from "./SessionFeedbackSheet.jsx";
 export { default as PlanReadySheet } from "./PlanReadySheet.jsx";

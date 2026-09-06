@@ -31,6 +31,8 @@ export const SWIMMER_PROFILE_KEYS = Object.freeze([
   "healthConsentAt",
   "healthDeclaration",
   "pace100",
+  "pace50",
+  "pace400",
   "readinessProfile",
   "sessionDuration",
 ]);
@@ -416,6 +418,8 @@ export function buildQuestionnaireDraft(swimmerProfile = {}, objective = {}) {
     preferredStroke: null,
     equipment: null,
     pace100: null,
+    pace50: null,
+    pace400: null,
     targetSessionDistance: null,
     trainingWish: "",
     trainingWishMeta: null,

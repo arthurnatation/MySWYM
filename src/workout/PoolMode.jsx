@@ -43,7 +43,6 @@ export default function PoolMode({
   accent,
   onClose,
   onFinish,
-  onTooHard,
 }) {
   const view = useMemo(() => buildWorkoutView(session), [session]);
   const exercises = view.exercises;
@@ -154,12 +153,14 @@ export default function PoolMode({
       </div>
 
       {/* Progress */}
-      <div style={{ height: 4, background: G.greyLight }}>
+      <div style={{ height: 4, background: G.greyLight, overflow: "hidden" }}>
         <div style={{
           height: "100%",
-          width: `${Math.round(progress * 100)}%`,
+          width: "100%",
+          transformOrigin: "left center",
+          transform: `scaleX(${Math.max(0, Math.min(1, progress))})`,
           background: accent?.color || G.blue,
-          transition: "width 200ms ease",
+          transition: "transform 200ms ease",
         }} />
       </div>
 
@@ -289,30 +290,6 @@ export default function PoolMode({
           );
         })()}
       </div>
-
-      {onTooHard && (
-        <div style={{ padding: "0 16px 8px", background: G.surface }}>
-          <button
-            type="button"
-            onClick={() => {
-              onClose?.();
-              onTooHard();
-            }}
-            style={{
-              width: "100%",
-              minHeight: 44,
-              border: "none",
-              background: "none",
-              color: G.grey,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: "pointer",
-            }}
-          >
-            Trop dure, alléger la suite
-          </button>
-        </div>
-      )}
 
       {/* Controls */}
       <div style={{

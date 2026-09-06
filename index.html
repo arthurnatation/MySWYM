@@ -2,12 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon-32x32.png?v=2" sizes="32x32" />
-    <link rel="icon" type="image/png" href="/favicon.png?v=2" sizes="1024x1024" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
+    <link rel="icon" type="image/png" href="/favicon-32x32.png?v=3" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=3" sizes="1024x1024" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, shrink-to-fit=no" />
-    <meta name="theme-color" content="#000514" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#9ec8f5" />
+    <meta name="color-scheme" content="light" />
     <title>MySWYM : Personalized swim training plan</title>
     <meta name="description" content="Swim progression, triathlon, open water, diploma prep. Personalized swim training plan, ready in 2 minutes. 7-day Premium trial." />
     <meta property="og:type" content="website" />
@@ -41,13 +41,30 @@
             document.documentElement.lang = "en";
           }
         } catch (e) {}
+        window.__MYSWYM_BOOT_AT = Date.now();
+        try {
+          var path = location.pathname || "/";
+          var p = path.replace(/\/+$/, "") || "/";
+          var gif = p === "/app" || p.indexOf("/app/") === 0;
+          if (!gif) document.documentElement.classList.add("myswym-boot-public");
+          var warm = sessionStorage.getItem("myswym-boot-warm") === "1";
+          if (!warm) {
+            for (var i = 0; i < localStorage.length; i++) {
+              var k = localStorage.key(i);
+              if (k && k.indexOf("auth-token") !== -1) { warm = true; break; }
+            }
+          }
+          if (warm) document.documentElement.classList.add("myswym-boot-warm");
+        } catch (e) {}
       })();
     </script>
     <style>
       html, body, #root {
         margin: 0;
         min-height: 100%;
-        background: #000514;
+        background: #f7fafc;
+        --myswym-accent: #006bfd;
+        --myswym-ink: #0f1b2d;
       }
       .myswym-boot {
         position: fixed;
@@ -57,103 +74,129 @@
         align-items: center;
         justify-content: center;
         padding: 24px;
-        background: #000514;
+        background:
+          radial-gradient(ellipse 90% 50% at 50% -8%, rgba(126, 184, 245, 0.55), transparent 55%),
+          linear-gradient(180deg, #d4e8fb 0%, #eef5fb 40%, #f4f8fc 100%);
         font-family: Geist, ui-sans-serif, system-ui, sans-serif;
         -webkit-font-smoothing: antialiased;
-        color: #f4f8fa;
+        color: var(--myswym-ink);
       }
       .myswym-boot-inner {
         display: flex;
         flex-direction: column;
         align-items: center;
         width: min(280px, 86vw);
-        animation: myswym-boot-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
       }
-      .myswym-boot-icon-wrap {
-        width: 88px;
-        height: 88px;
-        border-radius: 24px;
-        overflow: hidden;
-        background: #000;
-        box-shadow: 0 0 48px rgba(0, 107, 253, 0.42);
+      .myswym-boot-stage {
+        width: 200px;
+        height: 200px;
+        display: grid;
+        place-items: center;
       }
-      .myswym-boot-icon {
+      .myswym-boot-gif,
+      .myswym-boot-still {
         display: block;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+        width: 200px;
+        height: 200px;
+        object-fit: contain;
+      }
+      .myswym-boot-gif + .myswym-boot-still {
+        display: none;
       }
       .myswym-boot-wordmark {
         display: block;
-        height: 28px;
+        height: 24px;
         width: auto;
-        max-width: 200px;
-        margin-top: 22px;
+        max-width: 168px;
+        margin-top: 0;
         object-fit: contain;
-      }
-      .myswym-boot-status {
-        margin: 18px 0 0;
-        font-size: 14px;
-        font-weight: 400;
-        line-height: 1.4;
-        text-align: center;
-        color: #b4c6db;
+        opacity: 1;
       }
       .myswym-boot-track {
-        width: 168px;
-        height: 4px;
+        width: 72px;
+        height: 2px;
         margin-top: 28px;
-        border-radius: 999px;
-        background: rgba(0, 107, 253, 0.18);
+        border-radius: 1px;
+        background: rgba(15, 27, 45, 0.12);
         overflow: hidden;
       }
       .myswym-boot-bar {
+        display: block;
         height: 100%;
-        width: 22%;
-        border-radius: inherit;
-        background: #006bfd;
-        animation: myswym-boot-bar 2.6s cubic-bezier(0.22, 1, 0.36, 1) both;
-      }
-      .myswym-boot-label {
-        margin: 36px 0 0;
-        font-size: 11px;
-        font-weight: 500;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        color: rgba(155, 176, 200, 0.7);
-      }
-      @keyframes myswym-boot-in {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
+        width: 100%;
+        transform-origin: center;
+        background: var(--myswym-accent);
+        animation: myswym-boot-bar 1.1s ease-in-out infinite;
       }
       @keyframes myswym-boot-bar {
-        0% { width: 10%; }
-        45% { width: 58%; }
-        100% { width: 86%; }
+        0%, 100% { transform: scaleX(0.22); opacity: 0.45; }
+        50% { transform: scaleX(1); opacity: 1; }
+      }
+      .myswym-boot--app {
+        background: var(--myswym-accent);
+        color: #fff;
+      }
+      html:not(.myswym-boot-public) .myswym-boot:not(.myswym-boot--public) {
+        background: var(--myswym-accent);
+        color: #fff;
+      }
+      .myswym-boot--app .myswym-boot-wordmark,
+      .myswym-boot-wordmark--app {
+        margin-top: 4px;
+        height: 22px;
+      }
+      .myswym-boot-public-ui {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+      }
+      html.myswym-boot-public .myswym-boot-public-ui {
+        display: flex;
+      }
+      html.myswym-boot-public .myswym-boot-app {
+        display: none;
+      }
+      html:not(.myswym-boot-public) .myswym-boot-public-ui {
+        display: none;
+      }
+      body:has(.myswym-boot) .ms-cookie-banner {
+        display: none;
       }
       @media (prefers-reduced-motion: reduce) {
-        .myswym-boot-inner,
+        .myswym-boot-gif { display: none; }
+        .myswym-boot-gif + .myswym-boot-still { display: block; }
         .myswym-boot-bar {
-          animation: none !important;
+          animation: none;
+          transform: scaleX(0.4);
+          opacity: 1;
         }
-        .myswym-boot-bar { width: 40%; }
       }
     </style>
   </head>
   <body>
     <div id="root">
-      <div class="myswym-boot" role="status" aria-live="polite" aria-busy="true">
+      <div class="myswym-boot" role="status" aria-live="polite" aria-busy="true" aria-label="Chargement">
         <div class="myswym-boot-inner">
-          <div class="myswym-boot-icon-wrap">
-            <img class="myswym-boot-icon" src="/apple-touch-icon.png" alt="" width="88" height="88" />
+          <div class="myswym-boot-app">
+            <div class="myswym-boot-stage" aria-hidden="true">
+              <img class="myswym-boot-gif" src="/chargement-application-natation.gif" alt="" width="200" height="200" />
+              <img class="myswym-boot-still" src="/boot-mark-still.png" alt="" width="200" height="200" />
+            </div>
+            <img class="myswym-boot-wordmark myswym-boot-wordmark--app" src="/logo-myswym-banner-blanc.png" alt="" height="22" width="95" />
           </div>
-          <img class="myswym-boot-wordmark" src="/logo-myswym-banner-blanc.png" alt="mySWYM" height="28" width="192" />
-          <p class="myswym-boot-status">Préparation de votre espace nageur</p>
-          <div class="myswym-boot-track" aria-hidden="true"><div class="myswym-boot-bar"></div></div>
-          <p class="myswym-boot-label">Un instant</p>
+          <div class="myswym-boot-public-ui">
+            <img class="myswym-boot-wordmark" src="/logo-myswym-on-light.png" alt="" height="24" width="103" />
+            <div class="myswym-boot-track" aria-hidden="true"><span class="myswym-boot-bar"></span></div>
+          </div>
         </div>
       </div>
     </div>
+    <script>
+      (function () {
+        var el = document.querySelector(".myswym-boot");
+        if (el && document.documentElement.lang !== "fr") el.setAttribute("aria-label", "Loading");
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

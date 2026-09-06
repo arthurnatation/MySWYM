@@ -2,7 +2,9 @@
   "language": {
     "section": "Language",
     "title": "Interface language",
-    "hint": "Landing, navigation and onboarding quiz. The rest of the app is translated progressively."
+    "hint": "Landing, navigation and onboarding quiz. The rest of the app is translated progressively.",
+    "selectTitle": "Select Language",
+    "confirm": "Confirm"
   },
   "appearance": {
     "section": "Appearance",

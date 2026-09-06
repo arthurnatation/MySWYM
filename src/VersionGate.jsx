@@ -1,6 +1,5 @@
 /**
  * Écran bloquant Version Gate, force update.
- * Style minimal aligné thème MySWYM ; n’altère pas le design existant de l’app.
  */
 import { useCallback, useEffect, useState } from "react";
 import { CURRENT_APP_VERSION } from "./lib/app-version.js";
@@ -9,61 +8,10 @@ import {
   cleanupUpdateQueryParam,
   forceAppUpdateReload,
 } from "./lib/version-gate.js";
-
-const shell = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 99999,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "24px",
-  background: "linear-gradient(160deg, #05070A 0%, #0c1520 55%, #0a1628 100%)",
-  color: "#f4f7fb",
-  fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
-};
-
-const card = {
-  maxWidth: 420,
-  width: "100%",
-  textAlign: "center",
-};
-
-const title = {
-  margin: "0 0 12px",
-  fontSize: "1.35rem",
-  fontWeight: 650,
-  letterSpacing: "-0.02em",
-  lineHeight: 1.25,
-};
-
-const text = {
-  margin: "0 0 8px",
-  fontSize: "0.98rem",
-  lineHeight: 1.5,
-  color: "rgba(244,247,251,0.82)",
-};
-
-const btn = {
-  marginTop: 28,
-  appearance: "none",
-  border: "none",
-  borderRadius: 12,
-  padding: "14px 22px",
-  width: "100%",
-  maxWidth: 280,
-  fontSize: "1rem",
-  fontWeight: 600,
-  cursor: "pointer",
-  background: "#3B82F6",
-  color: "#fff",
-};
-
-const meta = {
-  marginTop: 18,
-  fontSize: "0.75rem",
-  color: "rgba(244,247,251,0.45)",
-};
+import Loading from "./app-shell/Loading.jsx";
+import PublicLoading from "./app-shell/PublicLoading.jsx";
+import { isAppGifPath } from "./lib/boot-warm.js";
+import AppStatusScreen from "./app-shell/AppStatusScreen.jsx";
 
 /**
  * @param {{ children: import('react').ReactNode }} props
@@ -137,43 +85,25 @@ export default function VersionGate({ children }) {
   };
 
   if (!state.ready) {
-    return (
-      <div className="myswym-boot" role="status" aria-busy="true" aria-live="polite">
-        <div className="myswym-boot-inner">
-          <div className="myswym-boot-icon-wrap">
-            <img className="myswym-boot-icon" src="/apple-touch-icon.png" alt="" width={88} height={88} />
-          </div>
-          <img className="myswym-boot-wordmark" src="/logo-myswym-banner-blanc.png" alt="mySWYM" height={28} width={192} />
-          <p className="myswym-boot-status">Préparation de votre espace nageur</p>
-          <div className="myswym-boot-track" aria-hidden="true"><div className="myswym-boot-bar" /></div>
-          <p className="myswym-boot-label">Un instant</p>
-        </div>
-      </div>
-    );
+    return isAppGifPath(window.location.pathname) ? <Loading /> : <PublicLoading />;
   }
 
   if (state.mustUpdate) {
+    const meta = [
+      `Version actuelle ${CURRENT_APP_VERSION}`,
+      state.minSupportedAppVersion ? `requise ${state.minSupportedAppVersion}` : null,
+    ].filter(Boolean).join(" · ");
+
     return (
-      <div style={shell} role="alertdialog" aria-modal="true" aria-labelledby="vg-title">
-        <div style={card}>
-          <p style={{ ...text, marginBottom: 20, fontWeight: 600, color: "#93c5fd" }}>MySWYM</p>
-          <h1 id="vg-title" style={title}>
-            {state.message || "Une nouvelle version de MySWYM est disponible."}
-          </h1>
-          <p style={text}>
-            Une mise à jour est nécessaire pour continuer à utiliser l&apos;application.
-          </p>
-          <button type="button" style={btn} onClick={onUpdate} disabled={reloading}>
-            {reloading ? "Mise à jour…" : "Mettre à jour"}
-          </button>
-          <p style={meta}>
-            Version actuelle {CURRENT_APP_VERSION}
-            {state.minSupportedAppVersion
-              ? ` · requise ${state.minSupportedAppVersion}`
-              : ""}
-          </p>
-        </div>
-      </div>
+      <AppStatusScreen
+        title={state.message || "Une nouvelle version de MySWYM est disponible."}
+        body="Une mise à jour est nécessaire pour continuer à utiliser l’application."
+        primaryLabel="Mettre à jour"
+        primaryBusyLabel="Mise à jour…"
+        onPrimary={onUpdate}
+        primaryDisabled={reloading}
+        meta={meta}
+      />
     );
   }
 

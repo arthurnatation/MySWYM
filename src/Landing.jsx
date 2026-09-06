@@ -1,6 +1,13 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/lp-accordion.jsx";
 import { LpButton } from "./ui/lp-button.jsx";
 import { useEffect, useRef, useState } from "react";
+import PublicLoading from "./app-shell/PublicLoading.jsx";
+import {
+  bootElapsedMs,
+  isLandingBootSeen,
+  markLandingBootSeen,
+  remainingLandingBootMs,
+} from "./lib/boot-warm.js";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LocalizedLink } from "./i18n/locale-routing.jsx";
@@ -86,14 +93,15 @@ function Hero() {
           <p className="lp-hero-note">{t("hero.freeNote")}</p>
         </div>
         <aside className="lp-hero-phones" aria-label={t("session.label")}>
-          <a href="#seance" className="lp-hero-phones-link">
+          <a href="#seance" className="lp-hero-phones-link" aria-label={t("hero.seeSession")}>
             <img
-              src="/hero-phone-mockup.png"
-              alt={t("hero.mockupAlt")}
+              src="/hero-phone-mockup.webp"
+              alt=""
               className="lp-hero-phones-img"
-              width={682}
-              height={1024}
+              width={1024}
+              height={1536}
               decoding="async"
+              aria-hidden="true"
             />
           </a>
         </aside>
@@ -389,11 +397,11 @@ function SessionPreview() {
       <div className="lp-wrap lp-section lp-session-preview">
         <div className="lp-session-preview-phone">
           <img
-            src="/session-phone-mockup.png"
+            src="/session-phone-mockup.webp"
             alt={t("session.mockupAlt")}
             className="lp-session-preview-phone-img"
-            width={682}
-            height={1024}
+            width={1024}
+            height={1536}
             decoding="async"
             loading="lazy"
           />
@@ -404,11 +412,11 @@ function SessionPreview() {
           <p className="lp-lead lp-lead-tight">{t("session.subtitle")}</p>
           <div className="lp-session-preview-detail">
             <img
-              src="/session-detail-mockup.png"
+              src="/session-detail-mockup.webp"
               alt={t("session.detailMockupAlt")}
               className="lp-session-preview-detail-img"
-              width={459}
-              height={956}
+              width={1024}
+              height={1536}
               decoding="async"
               loading="lazy"
             />
@@ -444,7 +452,9 @@ function CoachSection() {
           <p className="lp-kicker">{t("coach.label")}</p>
           <p className="lp-card-kicker lp-coach-eyebrow">{t("coach.eyebrow")}</p>
           <h2 className="lp-h2 lp-display lp-coach-title">
-            {t("coach.titleLine1")}<br />{t("coach.titleLine2")}
+            {t("coach.titleLine1")}{" "}
+            <br />
+            {t("coach.titleLine2")}
           </h2>
           <p className="lp-lead lp-coach-body">{t("coach.body")}</p>
           <div className="lp-coach-actions">
@@ -542,11 +552,11 @@ function FAQ() {
           <aside className="lp-faq-chat" aria-label={t("faq.chatTitle")}>
             <div className="lp-faq-chat-phone">
               <img
-                src="/faq-chat-mockup.png"
+                src="/faq-chat-mockup.webp"
                 alt={t("faq.mockupAlt")}
                 className="lp-faq-chat-phone-img"
-                width={682}
-                height={1024}
+                width={1024}
+                height={1536}
                 decoding="async"
                 loading="lazy"
               />
@@ -599,6 +609,11 @@ export default function Landing() {
   const { t, i18n } = useTranslation("landing");
   const { pathname } = useLocation();
   const { reviews } = usePublishedReviews();
+  const [showBoot, setShowBoot] = useState(() => remainingLandingBootMs({
+    reduceMotion: prefersReducedMotion(),
+    seen: isLandingBootSeen(),
+    elapsed: bootElapsedMs(),
+  }) > 0);
 
   usePageSeo({
     title: t("meta.title"),
@@ -612,12 +627,30 @@ export default function Landing() {
   }, []);
 
   useEffect(() => {
+    if (!showBoot) {
+      markLandingBootSeen();
+      return undefined;
+    }
+    const wait = remainingLandingBootMs({
+      reduceMotion: prefersReducedMotion(),
+      seen: false,
+      elapsed: bootElapsedMs(),
+    });
+    const id = window.setTimeout(() => {
+      markLandingBootSeen();
+      setShowBoot(false);
+    }, wait);
+    return () => window.clearTimeout(id);
+  }, [showBoot]);
+
+  useEffect(() => {
     const prevBg = document.body.style.background;
     const prevScheme = document.documentElement.style.colorScheme;
-    document.body.style.background = "#000514";
-    document.documentElement.style.colorScheme = "dark";
+    document.body.style.background = "#f4f8fc";
+    document.documentElement.style.colorScheme = "light";
 
     const scrollToTarget = () => {
+      if (showBoot) return;
       const hash = window.location.hash?.replace("#", "");
       if (!hash) return;
       requestAnimationFrame(() => {
@@ -634,24 +667,30 @@ export default function Landing() {
       document.body.style.background = prevBg;
       document.documentElement.style.colorScheme = prevScheme;
     };
-  }, [t, i18n.language, pathname]);
+  }, [t, i18n.language, pathname, showBoot]);
 
   return (
-    <div className="lp-root">
-      <PublicNav />
-      <main>
-        <Hero />
-        <Objectives />
-        <WhyMyswym />
-        <SessionPreview />
-        <CoachSection />
-        <Includes />
-        <LandingReviews />
-        <FAQ />
-        <FinalCta />
-      </main>
-      <Footer />
-      <StickyCta revealOnScroll />
-    </div>
+    <>
+      {showBoot ? (
+        <PublicLoading />
+      ) : (
+        <div className="lp-root">
+          <PublicNav />
+          <main>
+            <Hero />
+            <Objectives />
+            <WhyMyswym />
+            <SessionPreview />
+            <CoachSection />
+            <Includes />
+            <LandingReviews />
+            <FAQ />
+            <FinalCta />
+          </main>
+          <Footer />
+          <StickyCta revealOnScroll />
+        </div>
+      )}
+    </>
   );
 }

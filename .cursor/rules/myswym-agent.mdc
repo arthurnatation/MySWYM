@@ -29,3 +29,8 @@ Quand l'utilisateur (Arthur) corrige le **contenu des séances**, un **objectif*
 
 - `src/App.jsx` (~6000 lignes) : plan + séances — changements ciblés uniquement.
 - Ne pas committer secrets ; pas de README marketing sans demande.
+
+## Skills DA / motion (app)
+
+- UI app glass / minimal : skill `.cursor/skills/myswym-app-glass` (prioritaire pour l’app loguée).
+- GSAP : skills `gsap-*` sous `.cursor/skills/` (officiel GreenSock). Ne pas `npm i gsap` pour un polish UI app ; framer-motion d’abord. Pas de WebGL liquid-glass-studio dans l’app.

@@ -103,7 +103,7 @@ export default function HowItWorksPage() {
       <header className="ms-how-hero">
         <div className="ms-how-wrap ms-how-hero-grid">
           <div>
-            <Breadcrumb items={crumbs} onDark />
+             <Breadcrumb items={crumbs} />
             <h1 className="ms-how-h1">
               <span>{t("howPage.h1a")}</span>
               <span>{t("howPage.h1b")}</span>

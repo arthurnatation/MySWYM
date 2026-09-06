@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase.js";
-import { FONT_DISPLAY } from "./theme/brand.js";
 import { G } from "./theme/palette.js";
 import CoachCard from "./CoachCard.jsx";
+import { AppTabShell } from "./app-shell/index.js";
 import { isSessionResolved } from "./lib/plan-progress-merge.js";
 import { getTabUi } from "./tab-ui-registry.js";
 import { findGoalById } from "./lib/onboarding-catalog.jsx";
+
+const TAB_PAD = {
+  paddingBottom: "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)",
+  minHeight: "100dvh",
+};
 
 // ── PLAN TAB ──────────────────────────────────────────────────────────────
 export default function PlanTab({
@@ -28,6 +33,8 @@ export default function PlanTab({
   } = getTabUi();
 
   const [stravaBestPace, setStravaBestPace] = useState(null);
+  const [showTools, setShowTools] = useState(false);
+  const [showPastWeeks, setShowPastWeeks] = useState(false);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -46,20 +53,25 @@ export default function PlanTab({
     return () => { cancelled = true; };
   }, [user?.id]);
 
+  const topBar = (planArg) => (
+    <AppTopBar
+      user={user}
+      onOpenMenu={onOpenMenu}
+      onAvatarClick={onTabChange ? () => onTabChange("profile") : undefined}
+      plan={planArg}
+      onTabChange={onTabChange}
+      onUpgrade={onUpgrade}
+      immersive
+    />
+  );
+
   // Compte connecté sans plan (ou ajout d’un plan) → questionnaire dans le shell app
   if ((!plan || addingPlan) && onboardingProps) {
     return (
-      <div style={{ paddingBottom: "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)", minHeight: "100dvh" }}>
-        <AppTopBar
-          user={user}
-          onOpenMenu={onOpenMenu}
-          onAvatarClick={onTabChange ? () => onTabChange("profile") : undefined}
-          plan={null}
-          onTabChange={onTabChange}
-          onUpgrade={onUpgrade}
-        />
+      <AppTabShell style={TAB_PAD}>
+        {topBar(null)}
         <div className="app-shell" style={{ paddingTop: 16, paddingBottom: 24 }}>
-          <div style={{ marginBottom: 20 }}>
+          <div className="ms-glass-card" style={{ padding: "18px 16px", marginBottom: 16, borderRadius: 26 }}>
             <h1 style={{ fontSize: 22, fontWeight: 800, color: G.ink, lineHeight: 1.15, margin: 0 }}>
               {addingPlan ? "Remplacer mon programme" : "Crée ton programme"}
             </h1>
@@ -72,18 +84,18 @@ export default function PlanTab({
             onCancel={addingPlan && plans?.length > 0 ? onCancelAddPlan : null}
           />
         </div>
-      </div>
+      </AppTabShell>
     );
   }
 
   if (!plan?.weeks) {
     return (
-      <div style={{ paddingBottom: "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)", minHeight: "100dvh" }}>
-        <AppTopBar user={user} onOpenMenu={onOpenMenu} onAvatarClick={onTabChange ? () => onTabChange("profile") : undefined} plan={null} onTabChange={onTabChange} onUpgrade={onUpgrade} />
+      <AppTabShell style={TAB_PAD}>
+        {topBar(null)}
         <div className="app-shell" style={{ paddingTop: 32 }}>
           <p style={{ color: G.grey, fontSize: 14 }}>Aucun programme pour le moment.</p>
         </div>
-      </div>
+      </AppTabShell>
     );
   }
 
@@ -96,13 +108,11 @@ export default function PlanTab({
         activePlanId={activePlanId}
         isPremium={isPremium}
         onComplete={(a, b, c) => {
-          // WeekCard → (weekIndex, sessionIndex, status) ; legacy boucle → (status)
           if (typeof a === "string" && b === undefined) onComplete(0, 0, a);
           else onComplete(a ?? 0, b ?? 0, c);
         }}
         onAdvanceLoop={onAdvanceLoop}
         onSwitchPlan={onSwitchPlan}
-        onAddPlan={onAddPlan}
         onDeletePlan={onDeletePlan}
         onRegenerate={onRegenerateLoop}
         onUpgrade={onUpgrade}
@@ -122,49 +132,45 @@ export default function PlanTab({
   const planLabel = findGoalById(profile.goal, GOALS)?.label
                  || CATEGORIES.find(c => c.id === profile.category)?.label
                  || "Mon plan";
-  return (
-    <div style={{ paddingBottom: "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)", minHeight: "100dvh" }}>
-      <AppTopBar
-        user={user}
-        onOpenMenu={onOpenMenu}
-        onAvatarClick={onTabChange ? () => onTabChange("profile") : undefined}
-        plan={plan}
-        onTabChange={onTabChange}
-        onUpgrade={onUpgrade}
-      />
 
-      {/* ── Sous-header programme ── */}
-      <div style={{
-        background: G.bg,
-        borderBottom: `1px solid rgba(142,179,255,0.10)`,
-      }}>
-        <div className="app-shell" style={{ paddingTop: 14, paddingBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: G.ink, lineHeight: 1, margin: 0 }}>{planLabel}</h1>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{
-              fontSize: 12, fontWeight: 600, color: G.inkLight,
-              background: G.greyXLight, padding: "4px 9px", borderRadius: 8,
-            }}>
+  const indexed = plan.weeks.map((week, i) => ({ week, i }));
+  const currentAndNext = currentWeekIndex < 0
+    ? indexed
+    : indexed.filter(({ i }) => i >= currentWeekIndex);
+  const pastWeeks = currentWeekIndex < 0
+    ? []
+    : indexed.filter(({ i }) => i < currentWeekIndex).reverse();
+
+  return (
+    <AppTabShell style={TAB_PAD}>
+      {topBar(plan)}
+
+      <div className="app-shell" style={{ paddingTop: 14, paddingBottom: 8 }}>
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
+          <h1 className="ms-type-page">
+            Programme
+          </h1>
+            <span className="ms-chip" style={{ height: 28, fontSize: 11 }}>
               Sem. {currentWeekIndex >= 0 ? currentWeekIndex + 1 : plan.weeks.length}/{plan.weeks.length}
             </span>
-            {currentWeekIndex >= 0 && currentWeek?.focus && (
-              <span style={{ fontSize: 12, color: G.blue, fontWeight: 600 }}>{currentWeek.focus}</span>
-            )}
           </div>
+          <p className="ms-type-body">
+            {planLabel}
+            {currentWeek?.focus ? ` · ${currentWeek.focus}` : ""}
+          </p>
         </div>
-        {/* Plan switcher */}
-        <div className="app-shell" style={{ paddingBottom: 12 }}>
-          <PlanSelector
-            plans={plans}
-            activePlanId={activePlanId}
-            onAddPlan={onAddPlan}
-          />
-        </div>
+        {(plans?.length > 0) && (
+          <div style={{ marginBottom: 12 }}>
+            <PlanSelector
+              plans={plans}
+              activePlanId={activePlanId}
+            />
+          </div>
+        )}
       </div>
 
-      <div className="app-shell" style={{ paddingTop: 16 }}>
+      <div className="app-shell" style={{ paddingTop: 4 }}>
 
         {!isPremium && (
           <PremiumBanner
@@ -173,71 +179,83 @@ export default function PlanTab({
           />
         )}
 
-        {isPremium && (
-          <CoachCard
-            plan={plan}
-            profile={profile}
-            currentWeekIndex={currentWeekIndex >= 0 ? currentWeekIndex : 0}
+        {currentAndNext.map(({ week, i }) => (
+          <WeekCard
+            key={i}
+            week={week}
+            weekIndex={i}
+            onComplete={onComplete}
+            onShare={onShare}
+            onEditFeedback={onEditFeedback}
+            isCurrentWeek={i === currentWeekIndex}
+            isPremium={isPremium}
+            onUpgrade={onUpgrade}
+            analyticsCtx={{ planId: activePlanId, profile }}
           />
-        )}
+        ))}
 
-        {!isPremium && <ResetConfirmButton onReset={onReset} variant="card" />}
-
-        <UpdateProgramCard
-          profile={profile}
-          isPremium={isPremium}
-          onUpgrade={onUpgrade}
-          onSave={onUpdateProgram}
-          stravaBestPace={stravaBestPace}
-        />
-
-        {(() => {
-          const indexed = plan.weeks.map((week, i) => ({ week, i }));
-          // Semaine courante en tête, puis futures, puis passées (repliées)
-          const ordered = currentWeekIndex < 0
-            ? indexed
-            : [
-                ...indexed.filter(({ i }) => i === currentWeekIndex),
-                ...indexed.filter(({ i }) => i > currentWeekIndex),
-                ...indexed.filter(({ i }) => i < currentWeekIndex),
-              ];
-          const pastStart = currentWeekIndex < 0
-            ? -1
-            : ordered.findIndex(({ i }) => i < currentWeekIndex);
-
-          return ordered.map(({ week, i }, ord) => (
-            <div key={i}>
-              {pastStart >= 0 && ord === pastStart && (
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    color: G.grey,
-                    margin: "8px 0 10px",
-                  }}
-                >
-                  Semaines passées
-                </div>
-              )}
+        {pastWeeks.length > 0 && (
+          <div style={{ marginTop: 8, marginBottom: 12 }}>
+            <button
+              type="button"
+              onClick={() => setShowPastWeeks((v) => !v)}
+              style={{
+                width: "100%", minHeight: 44, border: "none", cursor: "pointer",
+                background: "rgba(15,27,45,0.04)", borderRadius: 14,
+                fontSize: 13, fontWeight: 600, color: G.grey,
+              }}
+            >
+              {showPastWeeks ? "Masquer les semaines passées" : `Semaines passées (${pastWeeks.length})`}
+            </button>
+            {showPastWeeks && pastWeeks.map(({ week, i }) => (
               <WeekCard
+                key={i}
                 week={week}
                 weekIndex={i}
                 onComplete={onComplete}
                 onShare={onShare}
                 onEditFeedback={onEditFeedback}
-                isCurrentWeek={i === currentWeekIndex}
+                isCurrentWeek={false}
                 isPremium={isPremium}
                 onUpgrade={onUpgrade}
                 analyticsCtx={{ planId: activePlanId, profile }}
               />
-            </div>
-          ));
-        })()}
+            ))}
+          </div>
+        )}
 
-        {isPremium && <ResetConfirmButton onReset={onReset} variant="subtle" />}
+        <button
+          type="button"
+          onClick={() => setShowTools((v) => !v)}
+          style={{
+            width: "100%", minHeight: 44, marginTop: 4, marginBottom: 8,
+            border: "none", background: "none", cursor: "pointer",
+            fontSize: 13, fontWeight: 600, color: G.grey,
+          }}
+        >
+          {showTools ? "Masquer les réglages" : "Ajuster mon programme"}
+        </button>
+
+        {showTools && (
+          <div style={{ marginBottom: 12 }}>
+            {isPremium && (
+              <CoachCard
+                plan={plan}
+                profile={profile}
+                currentWeekIndex={currentWeekIndex >= 0 ? currentWeekIndex : 0}
+              />
+            )}
+            <UpdateProgramCard
+              profile={profile}
+              isPremium={isPremium}
+              onUpgrade={onUpgrade}
+              onSave={onUpdateProgram}
+              stravaBestPace={stravaBestPace}
+            />
+            <ResetConfirmButton onReset={onReset} variant={isPremium ? "subtle" : "card"} />
+          </div>
+        )}
       </div>
-    </div>
+    </AppTabShell>
   );
 }

@@ -64,7 +64,7 @@ export default function CookieBanner() {
         <div className="ms-cookie-banner" role="dialog" aria-label={t("cookies.bannerAria")}>
           <p>
             {t("cookies.bannerShort")}{" "}
-            <LocalizedLink to={{ pathname: "/politique-cookies", hash: "#parametrage-cookies" }}>{t("cookies.learnMore")}</LocalizedLink>
+            <LocalizedLink className="ms-cookie-inline-link" to={{ pathname: "/politique-cookies", hash: "#parametrage-cookies" }}>{t("cookies.learnMore")}</LocalizedLink>
           </p>
           <div className="ms-cookie-banner-actions">
             <button type="button" className="ms-cookie-btn ms-cookie-btn--secondary" onClick={() => persist({ analytics: false, performance: false })}>
@@ -126,7 +126,7 @@ export default function CookieBanner() {
                 <TabsContent value="categories">
                   <p className="ms-cookie-lead">
                     {t("cookies.lead")}{" "}
-                    <LocalizedLink to={{ pathname: "/politique-cookies", hash: "#parametrage-cookies" }}>{t("cookies.learnMore")}</LocalizedLink>
+                    <LocalizedLink className="ms-cookie-inline-link" to={{ pathname: "/politique-cookies", hash: "#parametrage-cookies" }}>{t("cookies.learnMore")}</LocalizedLink>
                   </p>
                   <CookieCategories prefs={prefs} onPrefsChange={setPrefs} />
                 </TabsContent>

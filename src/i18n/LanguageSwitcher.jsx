@@ -1,18 +1,21 @@
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { Check, ChevronRight, X } from "lucide-react";
 import { setAppLanguage } from "./index.js";
 import { isAppPath, stripLocalePrefix, withLocalePrefix } from "./locale-path.js";
+import { playUiSound } from "../lib/ui-sounds.js";
 
 const OPTIONS = [
   { id: "fr", code: "FR", name: "Français" },
   { id: "en", code: "EN", name: "English" },
 ];
 
-function FlagCircle({ locale }) {
+function FlagCircle({ locale, size = 22 }) {
   if (locale === "en") {
     return (
-      <span className="ms-lang-flag" aria-hidden>
+      <span className="ms-lang-flag" style={{ width: size, height: size }} aria-hidden>
         <svg viewBox="0 0 60 30" preserveAspectRatio="xMidYMid slice">
           <rect width="60" height="30" fill="#012169" />
           <path d="M0 0 L60 30 M60 0 L0 30" stroke="#fff" strokeWidth="6" />
@@ -24,7 +27,7 @@ function FlagCircle({ locale }) {
     );
   }
   return (
-    <span className="ms-lang-flag" aria-hidden>
+    <span className="ms-lang-flag" style={{ width: size, height: size }} aria-hidden>
       <svg viewBox="0 0 3 2" preserveAspectRatio="xMidYMid slice">
         <rect width="1" height="2" fill="#002395" />
         <rect x="1" width="1" height="2" fill="#fff" />
@@ -36,13 +39,12 @@ function FlagCircle({ locale }) {
 
 /**
  * Sélecteur de langue.
- * `nav` : drapeau + code (FR/EN) + menu Français / English (header).
- * `settings` : pastille FR | EN dans l’app.
- * Sur le site marketing : change l’URL (`/pricing` ↔ `/fr/tarifs`).
- * Dans l’app : change seulement la langue (pas de `/fr` sur `/app`).
+ * `nav` : drapeau + code (FR/EN) + menu (header marketing).
+ * `settings` : ligne Profil + sheet Miracle (drapeaux, Confirm).
  */
 export default function LanguageSwitcher({ variant = "nav" }) {
   const { t, i18n } = useTranslation("common");
+  const { t: ts } = useTranslation("settings");
   const location = useLocation();
   const lng = i18n.language?.startsWith("en") ? "en" : "fr";
   const current = OPTIONS.find((o) => o.id === lng) || OPTIONS[0];
@@ -51,6 +53,7 @@ export default function LanguageSwitcher({ variant = "nav" }) {
   const menuId = useId();
   const rootRef = useRef(null);
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(lng);
 
   const target = (next) => ({
     pathname: withLocalePrefix(bare, next),
@@ -64,62 +67,138 @@ export default function LanguageSwitcher({ variant = "nav" }) {
 
   useEffect(() => {
     if (!open) return undefined;
-    const onPointer = (e) => {
-      if (!rootRef.current?.contains(e.target)) setOpen(false);
-    };
+    setDraft(lng);
     const onKey = (e) => {
       if (e.key === "Escape") setOpen(false);
     };
-    document.addEventListener("pointerdown", onPointer);
-    document.addEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
     };
-  }, [open]);
+  }, [open, lng]);
+
+  useEffect(() => {
+    if (!open || variant === "settings") return undefined;
+    const onPointer = (e) => {
+      if (!rootRef.current?.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointer);
+    return () => document.removeEventListener("pointerdown", onPointer);
+  }, [open, variant]);
 
   if (variant === "settings") {
-    const wrap = {
-      display: "inline-flex",
-      alignItems: "center",
-      gap: 2,
-      padding: 3,
-      borderRadius: 999,
-      background: "transparent",
-      border: "1.5px solid var(--myswym-grey-light, rgba(0, 107, 253, 0.22))",
-      fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif",
+    const close = () => {
+      playUiSound("soft");
+      setOpen(false);
     };
-    const btn = (active) => ({
-      border: "none",
-      cursor: "pointer",
-      fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif",
-      fontWeight: 700,
-      fontSize: 13,
-      letterSpacing: "0.04em",
-      padding: "8px 14px",
-      borderRadius: 999,
-      minHeight: 36,
-      minWidth: 44,
-      background: active ? "#006bfd" : "transparent",
-      color: active ? "#ffffff" : "var(--myswym-ink-light, #9bb0c8)",
-      transition: "background 0.15s, color 0.15s",
-      WebkitTapHighlightColor: "transparent",
-    });
+    const confirm = () => {
+      playUiSound("tap");
+      if (draft !== lng) setAppLanguage(draft);
+      setOpen(false);
+    };
+
     return (
-      <div role="group" aria-label={t("lang.label")} style={wrap}>
-        {OPTIONS.map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            aria-pressed={lng === opt.id}
-            aria-label={opt.id === "fr" ? t("lang.switchToFr") : t("lang.switchToEn")}
-            onClick={() => setAppLanguage(opt.id)}
-            style={btn(lng === opt.id)}
-          >
-            {opt.code}
-          </button>
-        ))}
-      </div>
+      <>
+        <button
+          type="button"
+          className="ms-profile-settings-row"
+          style={{
+            width: "100%",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            textAlign: "left",
+            font: "inherit",
+            boxSizing: "border-box",
+          }}
+          onClick={() => {
+            playUiSound("soft");
+            setOpen(true);
+          }}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+        >
+          <span className="ms-profile-settings-icon" style={{ background: "rgba(0,107,253,0.1)" }}>
+            <FlagCircle locale={current.id} size={22} />
+          </span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="ms-profile-settings-label">{ts("language.title")}</div>
+            <div className="ms-profile-settings-hint">{current.name}</div>
+          </div>
+          <ChevronRight size={18} color="#9aa8b8" strokeWidth={2} />
+        </button>
+
+        {open
+          ? createPortal(
+              <div
+                className="sheet-overlay"
+                role="presentation"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) close();
+                }}
+                style={{ zIndex: 520 }}
+              >
+                <div
+                  className="sheet-panel ms-sheet-card scale-in ms-lang-sheet"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby={`${menuId}-title`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="ms-lang-sheet-head">
+                    <h2 id={`${menuId}-title`} className="ms-lang-sheet-title">
+                      {ts("language.selectTitle")}
+                    </h2>
+                    <button
+                      type="button"
+                      className="ms-glass-icon-btn"
+                      aria-label={t("nav.closeMenu")}
+                      onClick={close}
+                      style={{ width: 36, height: 36 }}
+                    >
+                      <X size={16} strokeWidth={2.25} />
+                    </button>
+                  </div>
+
+                  <div className="ms-lang-sheet-list" role="listbox" aria-label={ts("language.selectTitle")}>
+                    {OPTIONS.map((opt) => {
+                      const selected = draft === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          className={`ms-lang-sheet-option${selected ? " is-active" : ""}`}
+                          onClick={() => {
+                            playUiSound("soft");
+                            setDraft(opt.id);
+                          }}
+                        >
+                          <FlagCircle locale={opt.id} size={28} />
+                          <span className="ms-lang-sheet-option-label">{opt.name}</span>
+                          {selected ? (
+                            <Check size={18} color="#006bfd" strokeWidth={2.5} aria-hidden />
+                          ) : (
+                            <span style={{ width: 18 }} aria-hidden />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button type="button" className="ms-pill-cta ms-lang-sheet-confirm" onClick={confirm}>
+                    {ts("language.confirm")}
+                  </button>
+                </div>
+              </div>,
+              document.body,
+            )
+          : null}
+      </>
     );
   }
 

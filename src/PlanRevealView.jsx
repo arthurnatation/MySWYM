@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { CalendarDays, Target, Waves } from "lucide-react";
 import BrandLogo from "./BrandLogo.jsx";
+import BootMark from "./app-shell/BootMark.jsx";
 import { FONT, FONT_DISPLAY } from "./theme/brand.js";
 import { buildPlanRevealModel } from "./lib/plan-reveal.js";
+import { markBootWarm } from "./lib/boot-warm.js";
 import SessionHeroCard from "./SessionHeroCard.jsx";
 
 const BUILD_LINES = [
@@ -11,6 +13,12 @@ const BUILD_LINES = [
   "Construction des phases…",
   "Personnalisation des séances…",
 ];
+const BUILD_LINE_MS = 900;
+
+function prefersReducedMotion() {
+  return typeof window !== "undefined"
+    && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 export default function PlanRevealView({
   phase = "building",
@@ -25,23 +33,42 @@ export default function PlanRevealView({
 
   useEffect(() => {
     if (phase === "ready") return undefined;
+    markBootWarm();
     setLineIdx(0);
+    if (prefersReducedMotion()) return undefined;
     const id = window.setInterval(() => {
       setLineIdx((i) => Math.min(i + 1, BUILD_LINES.length - 1));
-    }, 420);
+    }, BUILD_LINE_MS);
     return () => window.clearInterval(id);
   }, [phase]);
 
   return (
-    <div className="ms-plan-reveal">
+    <div className={`ms-plan-reveal${phase === "ready" && model ? "" : " ms-plan-reveal--building"}`}>
       <div className="ms-plan-reveal-inner">
-        <BrandLogo variant="wordmark" height={22} onDark={onDark} />
+        {phase === "ready" && model ? (
+          <BrandLogo variant="wordmark" height={22} onDark={onDark} />
+        ) : null}
 
         {phase !== "ready" || !model ? (
-          <div className="ms-plan-reveal-building">
-            <div className="ms-plan-reveal-spin" aria-hidden />
-            <h1 className="ms-plan-reveal-title">Préparation de ton plan</h1>
-            <p className="ms-plan-reveal-sub">{BUILD_LINES[Math.min(lineIdx, BUILD_LINES.length - 1)]}</p>
+          <div
+            className="ms-plan-reveal-building"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+            aria-labelledby="ms-plan-reveal-build-title"
+          >
+            <BootMark />
+            <img
+              className="myswym-boot-wordmark myswym-boot-wordmark--static"
+              src="/logo-myswym-banner-blanc.png"
+              alt=""
+              height={22}
+              width={95}
+            />
+            <h1 id="ms-plan-reveal-build-title" className="ms-plan-reveal-title">Préparation de ton plan</h1>
+            <p className="ms-plan-reveal-sub">
+              {BUILD_LINES[Math.min(lineIdx, BUILD_LINES.length - 1)]}
+            </p>
           </div>
         ) : (
           <div className="ms-plan-reveal-ready">

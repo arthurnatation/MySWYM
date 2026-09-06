@@ -1,0 +1,48 @@
+---
+description: Priorité MySWYM sur Superpowers - allowlist skills utiles, blocage des workflows conflictuels
+alwaysApply: true
+---
+
+# Superpowers × MySWYM
+
+Si le plugin Superpowers (ou un skill `superpowers:*`) est disponible, ces règles s’appliquent **en plus** des rules MySWYM. En cas de conflit : **MySWYM gagne**.
+
+## Priorité (ordre décroissant)
+
+1. Instructions explicites d’Arthur dans le chat
+2. Rules MySWYM (`.cursor/rules/*` : git-flow, typo-fr, natation, myswym-agent)
+3. Skill projet `.cursor/skills/myswym-superpowers`
+4. Skills Superpowers **allowlistés** ci-dessous
+5. Comportement agent / Superpowers par défaut
+
+## Autorisé (utile)
+
+Utiliser seulement quand le contexte matche, sans cérémonie inutile :
+
+| Skill / idée | Quand |
+| --- | --- |
+| brainstorming | Nouvelle feature produit / UX **avant** de coder (sauf fix évident) |
+| writing-plans | Chantier multi-fichiers ; plan court, tâches vérifiables |
+| systematic-debugging | Bug non trivial ; preuve de cause racine |
+| verification-before-completion | Avant de déclarer « c’est fini » |
+| requesting-code-review | Avant merge vers `staging` / PR |
+
+Le skill projet `myswym-superpowers` adapte ces flux au git flow et à la natation MySWYM.
+
+## Interdit / freiné (danger pour MySWYM)
+
+- **using-git-worktrees** : ne pas créer de worktrees. Brancher depuis le `develop` **local** selon `git-flow.mdc`.
+- **finishing-a-development-branch** : ne pas merger vers `main` ; ne pas inventer un flow merge/discard. Suivre git-flow (staging, Arthur merge `main`).
+- **test-driven-development obligatoire** : pas de TDD forcé sur Soft Sheet 01–13, catalogues natation, ou copy coach. TDD OK seulement si Arthur le demande ou sur du code testable isolé (utils, parsers, API).
+- **subagent-driven-development** autonome : pas d’exécution multi-heures sans checkpoints Arthur. Pas de balayage large de `src/App.jsx` / plans utilisateur.
+- **Regen de plans / séances** : Superpowers ne justifie jamais une régénération silencieuse de semaines d’un plan existant.
+- **Clone / copie** du repo Superpowers (fork ou upstream) **dans** MySWYM : non. Plugin Cursor / skills projet uniquement.
+- Commits, push, PR : uniquement si Arthur le demande (règles user habituelles).
+
+## Télémetrie
+
+Si le companion brainstorm Superpowers est utilisé : préférer `SUPERPOWERS_DISABLE_TELEMETRY=1`. Ne pas exfiltrer de contexte MySWYM hors localhost.
+
+## Install
+
+Plugin officiel Cursor marketplace uniquement (`/add-plugin superpowers`). Pas depuis le fork GitHub pour l’usage quotidien.

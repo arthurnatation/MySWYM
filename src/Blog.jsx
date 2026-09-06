@@ -106,7 +106,7 @@ export default function Blog() {
       <PublicNav />
       <header className="ms-blog-hero">
         <div className="ms-blog-wrap">
-          <Breadcrumb items={crumbs} onDark />
+           <Breadcrumb items={crumbs} />
           <p className="ms-pricing-kicker">{t("nav.blog")}</p>
           <h1 className="ms-pricing-h1">
             {t("pages.blogHeading")}

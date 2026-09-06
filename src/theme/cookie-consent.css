@@ -1,11 +1,11 @@
 .ms-cookie-banner {
-  --cc-bg: #000514;
-  --cc-card: #06101f;
-  --cc-fg: #f4f8fa;
-  --cc-muted: #9bb0c8;
+  --cc-bg: #f4f8fc;
+  --cc-card: rgba(255, 255, 255, 0.94);
+  --cc-fg: #0f1b2d;
+  --cc-muted: #4a5d72;
   --cc-primary: #006bfd;
   --cc-primary-fg: #ffffff;
-  --cc-border: rgba(0, 107, 253, 0.22);
+  --cc-border: rgba(15, 27, 45, 0.12);
   position: fixed;
   left: max(var(--page-gutter, 2rem), env(safe-area-inset-left));
   right: max(var(--page-gutter, 2rem), env(safe-area-inset-right));
@@ -16,8 +16,12 @@
   padding: 0.75rem 0.85rem;
   background: var(--cc-card);
   border: 1px solid var(--cc-border);
-  border-radius: 0.85rem;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 14px 36px rgba(15, 40, 80, 0.14);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   color: var(--cc-muted);
   font-size: 0.75rem;
   line-height: 1.45;
@@ -44,7 +48,7 @@
 }
 
 .ms-cookie-banner a {
-  color: #74b4ff;
+  color: var(--cc-primary);
   font-weight: 700;
   text-decoration: none;
 }
@@ -85,19 +89,20 @@
 }
 
 .ms-cookie-btn--secondary {
-  background: transparent;
-  border-color: rgba(155, 176, 200, 0.45);
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(15, 27, 45, 0.16);
   color: var(--cc-fg);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .ms-cookie-btn--secondary:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(155, 176, 200, 0.7);
+  background: #ffffff;
+  border-color: rgba(15, 27, 45, 0.28);
 }
 
 .ms-cookie-btn:focus-visible,
 .ms-cookie-link:focus-visible,
+.ms-cookie-inline-link:focus-visible,
 .ms-cookie-icon:focus-visible,
 .ms-cookie-tab:focus-visible,
 .ms-cookie-switch:focus-visible,
@@ -109,21 +114,35 @@
 .ms-cookie-link {
   display: inline-flex;
   align-items: center;
-  min-height: 2rem;
-  margin: 0.35rem 0 0;
-  padding: 0.15rem 0;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0.15rem 0 0;
+  padding: 0.35rem 0.25rem;
   border: none;
   background: none;
-  color: #74b4ff;
+  color: var(--cc-primary);
   font-family: inherit;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
 }
 
+.ms-cookie-inline-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.35rem 0.1rem;
+  color: var(--cc-primary);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* Sticky CTA sous le cookie : éviter le double empilement pouce. */
 body:has(.ms-cookie-banner) .ms-sticky-cta,
-body:has(.ms-cookie-banner) .ms-sticky-cta-spacer {
+body:has(.ms-cookie-banner) .ms-sticky-cta-spacer,
+body:has(.ms-cookie-banner) .lp-sticky,
+body:has(.ms-cookie-banner) .lp-sticky-spacer {
   display: none !important;
 }
 
@@ -131,17 +150,19 @@ body:has(.ms-cookie-banner) .ms-sticky-cta-spacer {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(0, 5, 20, 0.72);
+  background: rgba(15, 40, 80, 0.28);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .ms-cookie-dialog {
-  --cc-bg: #000514;
-  --cc-card: #06101f;
-  --cc-fg: #f4f8fa;
-  --cc-muted: #9bb0c8;
+  --cc-bg: #f4f8fc;
+  --cc-card: rgba(255, 255, 255, 0.96);
+  --cc-fg: #0f1b2d;
+  --cc-muted: #4a5d72;
   --cc-primary: #006bfd;
   --cc-primary-fg: #ffffff;
-  --cc-border: rgba(0, 107, 253, 0.22);
+  --cc-border: rgba(15, 27, 45, 0.12);
   position: fixed;
   z-index: 1001;
   left: 0.75rem;
@@ -155,7 +176,11 @@ body:has(.ms-cookie-banner) .ms-sticky-cta-spacer {
   background: var(--cc-card);
   border: 1px solid var(--cc-border);
   border-radius: 1.15rem;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 24px 64px rgba(15, 40, 80, 0.18);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
   color: var(--cc-fg);
   outline: none;
 }
@@ -261,7 +286,7 @@ body:has(.ms-cookie-banner) .ms-sticky-cta-spacer {
 }
 
 .ms-cookie-lead a {
-  color: #74b4ff;
+  color: var(--cc-primary);
   font-weight: 700;
   text-decoration: none;
 }
@@ -308,7 +333,7 @@ body:has(.ms-cookie-banner) .ms-sticky-cta-spacer {
   padding: 0;
   border: none;
   border-radius: 999px;
-  background: rgba(155, 176, 200, 0.28);
+  background: rgba(15, 27, 45, 0.16);
   cursor: pointer;
 }
 
@@ -354,7 +379,7 @@ body:has(.ms-cookie-banner) .ms-sticky-cta-spacer {
   padding: 0;
   border: none;
   background: none;
-  color: #74b4ff;
+  color: var(--cc-primary);
   font-family: inherit;
   font-size: 0.8125rem;
   font-weight: 700;
