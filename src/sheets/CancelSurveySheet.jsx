@@ -13,11 +13,11 @@ export default function CancelSurveySheet({ onChoose, onSkip }) {
         <div className="ms-sheet-handle" />
         <h3
           style={{
-            fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+            fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
             fontSize: 28,
             fontWeight: 700,
             textTransform: "none",
-            letterSpacing: "-0.03em",
+            letterSpacing: "-0.02em",
             color: G.ink,
             marginBottom: 8,
             textAlign: "center",

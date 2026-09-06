@@ -23,25 +23,22 @@ const EQUIPMENT_LABELS = {
   elastique: "Élastique chevilles",
 };
 
-function phaseTone(sectionId, G) {
+function phaseTone(sectionId) {
   if (sectionId === "warm") {
     return {
-      accent: "#3d8fff",
-      border: "rgba(61, 143, 255, 0.28)",
-      headerBg: "rgba(61, 143, 255, 0.10)",
+      id: "warm",
+      accent: "#006bfd",
     };
   }
   if (sectionId === "cool") {
     return {
-      accent: "#5eead4",
-      border: "rgba(94, 234, 212, 0.22)",
-      headerBg: "rgba(94, 234, 212, 0.08)",
+      id: "cool",
+      accent: "#1fae86",
     };
   }
   return {
-    accent: "#f87171",
-    border: "rgba(248, 113, 113, 0.28)",
-    headerBg: "rgba(248, 113, 113, 0.10)",
+    id: "main",
+    accent: "#e85a68",
   };
 }
 
@@ -180,77 +177,47 @@ export default function WorkoutPrepView({
       )}
 
       {embedded && (equipmentLabel || header.intensityCue) && (
-        <div style={{ marginBottom: 14, display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className="ms-workout-meta">
           {equipmentLabel && (
-            <div style={{ fontSize: 13, color: G.grey, fontWeight: 600 }}>
+            <div className="ms-workout-meta-line">
               Matériel · {equipmentLabel}
             </div>
           )}
           {header.intensityCue && (
-            <div style={{ fontSize: 13, color: G.grey, fontWeight: 600 }}>
+            <div className="ms-workout-meta-line">
               Objectif · {header.intensityCue.charAt(0).toUpperCase() + header.intensityCue.slice(1)}
             </div>
           )}
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div className="ms-workout-phases">
         {sections.map((section) => {
-          const tone = phaseTone(section.id, G);
+          const tone = phaseTone(section.id);
           return (
             <section
               key={section.id}
               aria-label={section.label}
-              style={{
-                borderRadius: 14,
-                border: `1px solid ${tone.border}`,
-                background: G.surface,
-                overflow: "hidden",
-              }}
+              className={`ms-workout-phase is-${tone.id}`}
             >
-              <header style={{
-                display: "flex",
-                alignItems: "baseline",
-                justifyContent: "space-between",
-                gap: 12,
-                padding: embedded ? "10px 12px" : "11px 14px",
-                background: tone.headerBg,
-                borderBottom: `1px solid ${tone.border}`,
-              }}>
-                <div style={{
-                  fontFamily: '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: "0.02em",
-                  textTransform: "uppercase",
-                  color: tone.accent,
-                }}>
+              <header className="ms-workout-phase-head">
+                <div className="ms-workout-phase-label">
                   {section.label}
                 </div>
                 {section.metersLabel && (
-                  <div style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: G.inkLight,
-                    fontVariantNumeric: "tabular-nums",
-                  }}>
+                  <div className="ms-workout-phase-meters">
                     {section.metersLabel}
                   </div>
                 )}
               </header>
-              <div style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 0,
-                padding: embedded ? "2px 8px 6px" : "4px 10px 8px",
-              }}>
+              <div className="ms-workout-phase-list">
                 {section.exercises.map((ex, i) => (
                   <div
                     key={ex.id}
+                    className="ms-workout-ex-row"
                     style={{
                       filter: locked && section.id === "main" && i > 1 ? "blur(3px)" : "none",
                       opacity: locked && section.id === "main" && i > 1 ? 0.75 : 1,
-                      borderTop: i === 0 ? "none" : `1px solid ${G.greyLight}`,
                     }}
                   >
                     <WorkoutExerciseCard
@@ -258,7 +225,7 @@ export default function WorkoutPrepView({
                         ? { ...ex, main: "••••••", cue: "Premium", volumeLabel: "•••", strokeLabel: null, educatif: null, educatifs: null, children: [], cues: [] }
                         : ex}
                       colors={G}
-                      accent={{ bg: tone.headerBg, color: tone.accent }}
+                      accent={{ bg: "transparent", color: tone.accent }}
                       onOpenDrill={setDrill}
                       compact={embedded}
                       nested
@@ -320,26 +287,10 @@ export default function WorkoutPrepView({
       {showStart && (
         <button
           type="button"
+          className="ms-pill-cta ms-workout-start"
           onClick={() => {
             if (locked) onUpgrade?.();
             else onStart?.();
-          }}
-          style={{
-            width: "100%",
-            marginTop: 20,
-            minHeight: 56,
-            border: "none",
-            borderRadius: 16,
-            background: G.blue,
-            color: "#fff",
-            fontSize: 16,
-            fontWeight: 800,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 10,
-            boxShadow: "0 10px 24px rgba(53,93,163,0.22)",
           }}
         >
           {locked ? <Lock size={18} color="#fff" /> : <Play size={18} color="#fff" fill="#fff" />}
@@ -349,6 +300,7 @@ export default function WorkoutPrepView({
 
       <button
         type="button"
+        className="ms-workout-secondary"
         onClick={() => {
           if (locked) {
             onUpgrade?.();
@@ -357,43 +309,16 @@ export default function WorkoutPrepView({
           openSessionPrint(session);
         }}
         aria-label="Imprimer la fiche de séance"
-        style={{
-          width: "100%",
-          marginTop: showStart ? 10 : 20,
-          minHeight: 44,
-          border: `1.5px solid ${G.greyLight}`,
-          borderRadius: 12,
-          background: "transparent",
-          color: G.inkLight,
-          fontSize: 13,
-          fontWeight: 700,
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 8,
-        }}
       >
-        <Printer size={16} color={G.inkLight} />
+        <Printer size={16} color="currentColor" />
         Imprimer la fiche
       </button>
 
       {onTooHard && !locked && (
         <button
           type="button"
+          className="ms-workout-secondary"
           onClick={onTooHard}
-          style={{
-            width: "100%",
-            marginTop: 10,
-            minHeight: 44,
-            border: `1.5px solid ${G.greyLight}`,
-            borderRadius: 12,
-            background: "transparent",
-            color: G.grey,
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
         >
           Trop dure pour moi, alléger la suite
         </button>

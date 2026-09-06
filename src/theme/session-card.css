@@ -20,14 +20,49 @@
   text-transform: uppercase;
   color: color-mix(in srgb, var(--lp-primary, var(--accent)) 62%, white);
 }
-.ms-session-card-head h2,
-.ms-session-card-head p:first-of-type {
+.ms-session-card-head h2 {
   margin: 0.35rem 0 0;
   font-family: var(--lp-display, var(--heading));
   font-size: 1.25rem;
   font-weight: 600;
   letter-spacing: -0.03em;
   color: var(--lp-fg, var(--text-h));
+}
+.ms-session-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  margin: 0.7rem 0 0;
+}
+.ms-session-card-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.ms-session-card-meta-kicker {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lp-muted, var(--text));
+  font-family: inherit;
+}
+.ms-session-card-meta-value {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--lp-fg, var(--text-h));
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+}
+.ms-session-card-meta-fallback {
+  margin: 0.35rem 0 0;
+  color: var(--lp-muted, var(--text));
+  font-size: 0.875rem;
+  font-family: inherit;
+  font-weight: 400;
+  letter-spacing: normal;
 }
 .ms-session-card-head h2 + p,
 .ms-session-card-head p:first-of-type + p {

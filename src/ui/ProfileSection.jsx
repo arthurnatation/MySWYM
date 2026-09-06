@@ -1,80 +1,54 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { FONT_DISPLAY } from "../theme/brand.js";
-import { G } from "../theme/palette.js";
 
 /**
- * Section collapsible pour Profil, une intention, un titre, touch ≥ 44px.
+ * Section collapsible Profil soft mist.
+ * Une intention, un titre, résumé fermé, touch ≥ 44px.
  */
 export default function ProfileSection({
   id,
   title,
   summary,
+  icon: Icon = null,
   defaultOpen = false,
   children,
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div
-      style={{
-        background: G.surface,
-        borderRadius: 20,
-        border: `1px solid ${G.greyLight}`,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-        marginBottom: 16,
-        overflow: "hidden",
-      }}
-    >
+    <div className={`ms-profile-section${open ? " is-open" : ""}`}>
       <button
         type="button"
         id={id ? `${id}-trigger` : undefined}
         aria-expanded={open}
         aria-controls={id ? `${id}-panel` : undefined}
         onClick={() => setOpen((v) => !v)}
-        style={{
-          width: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          padding: "16px 16px",
-          minHeight: 52,
-          background: "none",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-        }}
+        className="ms-profile-section-trigger"
       >
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, fontFamily: FONT_DISPLAY, color: G.ink }}>
-            {title}
-          </div>
-            {!open && summary && (
-            <div style={{ fontSize: 13, color: G.grey, marginTop: 4, lineHeight: 1.35 }}>
-              {summary}
-            </div>
-          )}
+        {Icon ? (
+          <span className="ms-profile-section-icon" aria-hidden>
+            <Icon size={18} strokeWidth={2.25} />
+          </span>
+        ) : null}
+        <div className="ms-profile-section-copy">
+          <div className="ms-profile-section-title">{title}</div>
+          {!open && summary ? (
+            <div className="ms-profile-section-summary">{summary}</div>
+          ) : null}
         </div>
-        <ChevronDown
-          size={18}
-          color={G.grey}
-          style={{
-            flexShrink: 0,
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "transform 0.18s ease",
-          }}
-        />
+        <span className={`ms-profile-section-chevron${open ? " is-open" : ""}`} aria-hidden>
+          <ChevronDown size={16} strokeWidth={2.5} />
+        </span>
       </button>
-      {open && (
+      {open ? (
         <div
           id={id ? `${id}-panel` : undefined}
           role="region"
           aria-labelledby={id ? `${id}-trigger` : undefined}
-          style={{ padding: "0 16px 18px" }}
+          className="ms-profile-section-body"
         >
           {children}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

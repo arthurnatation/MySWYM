@@ -2,7 +2,9 @@
   "language": {
     "section": "Langue",
     "title": "Langue de l'interface",
-    "hint": "Landing, navigation et questionnaire. Le reste de l'app se traduit progressivement."
+    "hint": "Landing, navigation et questionnaire. Le reste de l'app se traduit progressivement.",
+    "selectTitle": "Choisir la langue",
+    "confirm": "Confirmer"
   },
   "appearance": {
     "section": "Apparence",

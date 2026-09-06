@@ -1,29 +1,32 @@
-/** Tokens MySWYM : bassin nuit + bleu logo. Ne pas modifier `src/landing/landing.css`. */
+/** Tokens MySWYM marketing / public : soft mist + bleu logo. */
 
 export const BRAND = {
-  bg: "#000514",
-  bgSoft: "#06101f",
-  bgCard: "#06101f",
-  card: "#06101f",
-  cardAlt: "#0a162c",
-  ink: "#f4f8fa",
-  inkLight: "#9bb0c8",
-  inkSoft: "#9bb0c8",
-  secondary: "#9bb0c8",
+  bg: "#f4f8fc",
+  bgSoft: "#e8f2ff",
+  bgCard: "rgba(255, 255, 255, 0.78)",
+  card: "rgba(255, 255, 255, 0.78)",
+  cardAlt: "#e8f2ff",
+  ink: "#0f1b2d",
+  inkLight: "#6b7c8f",
+  inkSoft: "#6b7c8f",
+  secondary: "#6b7c8f",
   primary: "#006bfd",
   primaryDeep: "#3d8fff",
-  primaryFix: "rgba(0, 107, 253, 0.16)",
-  outlineVar: "rgba(0, 107, 253, 0.28)",
-  outline: "#9bb0c8",
+  primaryFix: "rgba(0, 107, 253, 0.12)",
+  outlineVar: "rgba(0, 107, 253, 0.22)",
+  outline: "#6b7c8f",
   white: "#ffffff",
   accent: "#006bfd",
   accentText: "#ffffff",
-  border: "rgba(0, 107, 253, 0.22)",
-  shadow: "0 2px 16px rgba(0, 0, 0, 0.35)",
-  shadowMd: "0 12px 36px rgba(0, 0, 0, 0.45)",
-  shadowLg: "0 24px 64px rgba(0, 0, 0, 0.5)",
-  night: "#000514",
+  border: "rgba(15, 27, 45, 0.08)",
+  shadow: "0 8px 28px rgba(50, 110, 180, 0.12)",
+  shadowMd: "0 14px 40px rgba(50, 110, 180, 0.14)",
+  shadowLg: "0 24px 56px rgba(50, 110, 180, 0.18)",
+  night: "#0f1b2d",
 };
 
-export const FONT = "Geist, ui-sans-serif, system-ui, sans-serif";
-export const FONT_DISPLAY = '"Space Grotesk", ui-sans-serif, system-ui, sans-serif';
+/** Une seule sans sobre (réf. Miracle / SF) : titres et corps partagent la même famille. */
+export const FONT =
+  "Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+/** Alias titres app : plus de Space Grotesk (trop « display »). Landing garde --lp-display. */
+export const FONT_DISPLAY = FONT;

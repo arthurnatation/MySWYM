@@ -364,10 +364,10 @@ export function parseMetersFromLine(text) {
 export function formatDurationShort(mins) {
   const n = Number(mins) || 0;
   if (n <= 0) return null;
-  if (n < 60) return `~${n} min`;
+  if (n < 60) return `${n} min`;
   const h = Math.floor(n / 60);
   const m = n % 60;
-  return m ? `~${h}h${String(m).padStart(2, "0")}` : `~${h}h`;
+  return m ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`;
 }
 
 export function formatRestLabel(rest) {

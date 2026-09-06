@@ -50,7 +50,7 @@ export default function SessionFeedbackSheet({ sessionTitle, initial, onSubmit, 
         <p style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: 2, textTransform: "uppercase", textAlign: "center", marginBottom: 8 }}>
           Retour séance
         </p>
-        <h3 style={{ fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: G.ink, textAlign: "center", marginBottom: 6 }}>
+        <h3 style={{ fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em", color: G.ink, textAlign: "center", marginBottom: 6 }}>
           Comment c'était ?
         </h3>
         {sessionTitle && (

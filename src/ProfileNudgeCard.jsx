@@ -14,10 +14,9 @@ export default function ProfileNudgeCard({ onOpenProfile, onDismiss }) {
   return (
     <div
       role="note"
+      className="ms-glass-card"
       style={{
-        background: G.surface,
-        border: `1px solid ${G.greyLight}`,
-        borderRadius: 16,
+        borderRadius: 18,
         padding: "14px 14px 14px 16px",
         marginBottom: 16,
         display: "flex",

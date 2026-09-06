@@ -1,13 +1,14 @@
 import { Component, useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
-  Users, MapPin, MessageCircle, Settings, Search, Waves,
+  MapPin, MessageCircle, Search, Waves,
   Shield, Loader2, UserPlus, EyeOff, Flag, Ban, PhoneOff, Link2,
-  AlertTriangle, CheckCircle2, X, Lock,
+  AlertTriangle, CheckCircle2, X, Lock, SlidersHorizontal,
 } from "lucide-react";
-import BrandLogo from "./BrandLogo.jsx";
+import { AppTabShell, AppTopBar, AppStatusScreen } from "./app-shell/index.js";
 import { trackEvent, trackUiError } from "./lib/analytics.js";
-import { resolveAvatarUrl } from "./lib/avatar.js";
 import { humanizeBuddyOtpError } from "./lib/buddy-otp-messages.js";
+import { playUiSound } from "./lib/ui-sounds.js";
 import { supabase } from "./supabase.js";
 import {
   BUDDY_DAYS,
@@ -148,10 +149,12 @@ function Modal({ title, children, onClose }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
+        className="ms-sheet-card"
         style={{
           width: "100%", maxWidth: 480, maxHeight: "90dvh", overflowY: "auto",
-          background: G.surface, borderRadius: 20, padding: 20,
-          boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
+          borderRadius: 20, padding: 20,
+          boxShadow: "0 20px 60px rgba(0,0,0,0.35)",
+          border: "1px solid rgba(255,255,255,0.14)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
@@ -173,12 +176,10 @@ function BuddyCard({ buddy, connection, onRequest, onOpenConnection }) {
 
   return (
     <article
+      className="ms-glass-card"
       style={{
-        background: G.surface,
         borderRadius: 20,
-        border: `1px solid ${G.greyLight}`,
         padding: "16px",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
       }}
     >
       <div style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 12 }}>
@@ -273,59 +274,26 @@ function BuddyCard({ buddy, connection, onRequest, onOpenConnection }) {
   );
 }
 
-function BuddyTopBar({ user, onOpenMenu, onTabChange }) {
-  const avatarUrl = resolveAvatarUrl(user);
-  const firstName = String(user?.user_metadata?.firstname || user?.email?.split("@")[0] || "N");
-  const initials = firstName.slice(0, 2).toUpperCase();
-
+function BuddyTopBar({ user, onOpenMenu, onTabChange, onUpgrade }) {
   return (
-    <header style={{
-      position: "sticky", top: 0, zIndex: 40,
-      background: G.glass, backdropFilter: "blur(16px)",
-      WebkitBackdropFilter: "blur(16px)",
-      borderBottom: `1px solid ${G.greyLight}`,
-      paddingTop: "var(--safe-top)",
-    }}>
-      <div className="app-shell" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 10, paddingBottom: 10, minHeight: 56 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {onTabChange && (
-            <button type="button" onClick={() => onTabChange("profile")} style={{ border: "none", background: "none", cursor: "pointer", padding: 0, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center" }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", background: G.blueLight, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${G.blueMid}` }}>
-                {avatarUrl
-                  ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <span style={{ fontSize: 12, fontWeight: 800, color: G.blue }}>{initials}</span>}
-              </div>
-            </button>
-          )}
-          <BrandLogo variant="wordmark" height={16} onDark style={{ maxWidth: "100%" }} />
-        </div>
-        <button type="button" onClick={onOpenMenu} aria-label="Ouvrir le menu" style={{ background: "none", border: "none", cursor: "pointer", padding: 10, minWidth: 44, minHeight: 44 }}>
-          <Settings size={20} color={G.grey} />
-        </button>
-      </div>
-    </header>
+    <AppTopBar
+      user={user}
+      onOpenMenu={onOpenMenu}
+      onAvatarClick={onTabChange ? () => onTabChange("profile") : undefined}
+      onTabChange={onTabChange}
+      onUpgrade={onUpgrade}
+      immersive
+    />
   );
 }
 
-function BuddyLockedScreen({ onOpenMenu, onTabChange, onUpgrade }) {
+function BuddyLockedScreen({ user, onOpenMenu, onTabChange, onUpgrade }) {
   return (
-    <div style={{ background: "transparent", minHeight: "100dvh", paddingBottom: "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 32px)" }}>
-      <div style={{
-        position: "sticky", top: 0, zIndex: 20,
-        padding: "calc(var(--safe-top) + 10px) var(--app-pad-x) 10px",
-        background: "var(--myswym-glass, rgba(0, 5, 20, 0.92))",
-        backdropFilter: "blur(16px)",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-      }}>
-        <button type="button" onClick={onOpenMenu} aria-label="Menu" style={{ width: 44, height: 44, border: "none", background: "none", color: G.ink, cursor: "pointer" }}>
-          <Users size={20} />
-        </button>
-        <div style={{ fontFamily: "Space Grotesk, ui-sans-serif, sans-serif", fontWeight: 700, fontSize: 16, color: G.ink }}>Binômes</div>
-        <div style={{ width: 44 }} />
-      </div>
+    <AppTabShell style={{ paddingBottom: "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 32px)" }}>
+      <BuddyTopBar user={user} onOpenMenu={onOpenMenu} onTabChange={onTabChange} onUpgrade={onUpgrade} />
       <div className="app-shell" style={{ paddingTop: 24 }}>
-        <div style={{
-          background: G.surface, border: `1px solid ${G.greyLight}`, borderRadius: 20,
+        <div className="ms-glass-card" style={{
+          borderRadius: 20,
           padding: "28px 20px", textAlign: "center",
         }}>
           <div style={{
@@ -343,10 +311,14 @@ function BuddyLockedScreen({ onOpenMenu, onTabChange, onUpgrade }) {
           </p>
           <button
             type="button"
-            onClick={() => onUpgrade?.("buddies")}
+            onClick={() => {
+              playUiSound("tap");
+              onUpgrade?.("buddies");
+            }}
+            className="ms-pill-cta"
             style={{
-              width: "100%", minHeight: 48, border: "none", borderRadius: 12, cursor: "pointer",
-              background: G.blue, color: "#fff", fontWeight: 700, fontSize: 15,
+              width: "100%", minHeight: 48, border: "none", cursor: "pointer",
+              color: "#fff", fontWeight: 700, fontSize: 15,
             }}
           >
             Voir l’abonnement
@@ -363,11 +335,11 @@ function BuddyLockedScreen({ onOpenMenu, onTabChange, onUpgrade }) {
           </button>
         </div>
       </div>
-    </div>
+    </AppTabShell>
   );
 }
 
-function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
+function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange, onUpgrade }) {
   const [view, setView] = useState("list");
   const [form, setForm] = useState(() => defaultBuddyForm(user, profile));
   const [buddies, setBuddies] = useState([]);
@@ -382,6 +354,7 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
   const [cityFilter, setCityFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("");
   const [goalFilter, setGoalFilter] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [requestTarget, setRequestTarget] = useState(null);
   const [safetyAck, setSafetyAck] = useState(false);
@@ -845,35 +818,26 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
   const tabBtn = (id, label) => (
     <button
       type="button"
-      onClick={() => setView(id)}
-      style={{
-        flex: 1, padding: "11px 8px", borderRadius: 12, border: "none", cursor: "pointer",
-        background: view === id ? G.blue : G.greyXLight,
-        color: view === id ? G.white : G.grey,
-        fontWeight: 700, fontSize: 12, fontFamily: "Geist, ui-sans-serif, system-ui, sans-serif",
+      onClick={() => {
+        playUiSound("nav");
+        setView(id);
       }}
+      className={`ms-seg-btn${view === id ? " is-active" : ""}`}
     >
       {label}
     </button>
   );
 
   return (
-    <div style={{ minHeight: "100dvh", background: "transparent", paddingBottom: "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)" }}>
-      <BuddyTopBar user={user} onOpenMenu={onOpenMenu} onTabChange={onTabChange} />
+    <AppTabShell style={{ paddingBottom: "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 24px)" }}>
+      <BuddyTopBar user={user} onOpenMenu={onOpenMenu} onTabChange={onTabChange} onUpgrade={onUpgrade} />
 
       <div className="app-shell" style={{ paddingTop: 20 }}>
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: G.waterLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Users size={22} color={G.water} />
-            </div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: G.ink, letterSpacing: "-0.02em" }}>Binômes</h1>
-              <p style={{ margin: 0, fontSize: 13, color: G.grey }}>Mise en relation sécurisée · numéro après accord mutuel</p>
-            </div>
-          </div>
+        <div className="ms-glass-card" style={{ marginBottom: 16, padding: "18px 16px 14px", borderRadius: 26 }}>
+          <h1 style={{ margin: "0 0 4px", fontSize: 26, fontWeight: 800, color: G.ink, letterSpacing: "-0.03em" }}>Binômes</h1>
+          <p style={{ margin: "0 0 14px", fontSize: 13, color: G.grey }}>Après accord mutuel</p>
 
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+          <div className="ms-seg-track">
             {tabBtn("list", "Explorer")}
             {tabBtn("matches", `Relations${pendingIncoming.length ? ` (${pendingIncoming.length})` : ""}`)}
             {tabBtn("form", "Mon profil")}
@@ -932,41 +896,35 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
 
         {view === "list" && (
           <>
-            <div style={{
-              background: G.blueLight, borderRadius: 16, padding: "14px 16px", marginBottom: 16,
-              border: `1px solid ${G.blueMid}`, display: "flex", gap: 12, alignItems: "flex-start",
-            }}>
-              <Shield size={18} color={G.blue} style={{ flexShrink: 0, marginTop: 2 }} />
-              <div style={{ fontSize: 12, color: G.blueDeep, lineHeight: 1.5 }}>
-                Ton numéro n’apparaît jamais sur l’annuaire. Pour y figurer, il faut une ville, un numéro
-                enregistré et le consentement de partage, l’échange du n° n’a lieu qu’après acceptation mutuelle
-                (distinct du compte et des données de santé).
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ position: "relative", marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              <div style={{ position: "relative", flex: 1 }}>
                 <Search size={16} color={G.greyMid} style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)" }} />
                 <input
                   type="search"
-                  placeholder="Ville ou zone (ex. Annecy, Lyon…)"
+                  placeholder="Ville ou zone…"
                   value={cityFilter}
                   onChange={(e) => setCityFilter(e.target.value)}
                   style={{ ...inp, paddingLeft: 40 }}
                 />
               </div>
-              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, marginBottom: 8 }}>
-                <FilterChip active={!goalFilter} label="Tous" onClick={() => setGoalFilter("")} />
-                {BUDDY_GOAL_CATEGORIES.map((g) => (
-                  <FilterChip key={g.id} active={goalFilter === g.id} label={g.label} onClick={() => setGoalFilter(goalFilter === g.id ? "" : g.id)} />
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
-                <FilterChip active={!levelFilter} label="Tous niveaux" onClick={() => setLevelFilter("")} />
-                {BUDDY_LEVELS.map((l) => (
-                  <FilterChip key={l.id} active={levelFilter === l.id} label={l.label} onClick={() => setLevelFilter(levelFilter === l.id ? "" : l.id)} />
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  playUiSound("soft");
+                  setFiltersOpen(true);
+                }}
+                className="ms-glass-icon-btn"
+                aria-label="Filtres"
+                style={{ width: 48, height: 48, borderRadius: 14, flexShrink: 0 }}
+              >
+                <SlidersHorizontal size={18} color={G.ink} />
+                {activeFilters > 0 && (
+                  <span style={{
+                    position: "absolute", top: 6, right: 6, width: 8, height: 8,
+                    borderRadius: "50%", background: G.blue,
+                  }} />
+                )}
+              </button>
             </div>
 
             {loadingList ? (
@@ -975,45 +933,41 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
                 <div style={{ marginTop: 12, fontSize: 14 }}>Chargement…</div>
               </div>
             ) : buddyRows.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "28px 16px", background: G.surface, borderRadius: 20, border: `1px solid ${G.greyLight}` }}>
+              <div className="ms-glass-card" style={{ textAlign: "center", padding: "28px 16px", borderRadius: 26 }}>
                 <Waves size={36} color={G.blueMid} style={{ marginBottom: 12 }} />
-                <div style={{ fontSize: 16, fontWeight: 700, color: G.ink, marginBottom: 8 }}>
-                  {activeFilters ? "Aucun profil pour ces filtres" : "Annuaire encore vide ici"}
+                <div style={{ fontSize: 18, fontWeight: 700, color: G.ink, marginBottom: 8 }}>
+                  {activeFilters > 0 ? "Aucun profil" : "Annuaire vide ici"}
                 </div>
-                <p style={{ fontSize: 13, color: G.grey, lineHeight: 1.5, margin: "0 0 16px" }}>
-                  {activeFilters
-                    ? "Élargis la ville ou retire un filtre."
-                    : "Publie ton profil (ville + numéro + consentement) pour apparaître, et pour que d’autres te trouvent. Le n° reste privé jusqu’à un accord mutuel."}
+                <p style={{ fontSize: 14, color: G.grey, lineHeight: 1.5, margin: "0 0 18px" }}>
+                  {activeFilters > 0
+                    ? "Élargis ta recherche ou retire un filtre."
+                    : "Publie ton profil pour apparaître. Le numéro reste privé jusqu’à un accord mutuel."}
                 </p>
-                {!activeFilters && (
-                  <div style={{ textAlign: "left", background: G.greyXLight, borderRadius: 14, padding: "12px 14px", marginBottom: 16, fontSize: 13, color: G.ink, lineHeight: 1.5 }}>
-                    <div style={{ fontWeight: 700, marginBottom: 8, color: G.grey, fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase" }}>Pour être visible</div>
-                    <div style={{ marginBottom: 6 }}>{form.city?.trim() ? "✓" : "○"} Ville / zone</div>
-                    <div style={{ marginBottom: 6 }}>{(form.availability_days || []).length ? "✓" : "○"} Disponibilités</div>
-                    <div style={{ marginBottom: 6 }}>{hasPhoneReady ? "✓" : "○"} Numéro + consentement</div>
-                    <div style={{ marginBottom: 6 }}>{form.is_discoverable ? "✓" : "○"} Profil publié</div>
-                    <div style={{ marginTop: 10, fontSize: 12, color: G.grey, lineHeight: 1.45 }}>
-                      Signalement et blocage : onglet Relations, sur chaque mise en relation.
-                    </div>
-                  </div>
-                )}
-                <button type="button" onClick={() => setView("form")} style={{ background: G.blue, color: G.white, border: "none", borderRadius: 12, padding: "12px 18px", fontWeight: 700, fontSize: 14, cursor: "pointer", minHeight: 48 }}>
-                  {profileReady ? "Compléter mon profil" : "Créer mon profil buddy"}
-                </button>
-                {activeFilters && (
+                {activeFilters > 0 ? (
                   <button
                     type="button"
+                    className="ms-pill-cta ms-pill-cta-secondary"
                     onClick={() => { setCityFilter(""); setLevelFilter(""); setGoalFilter(""); }}
-                    style={{ display: "block", width: "100%", marginTop: 8, minHeight: 44, border: "none", background: "none", color: G.grey, fontWeight: 600, cursor: "pointer" }}
                   >
                     Effacer les filtres
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="ms-pill-cta"
+                    onClick={() => {
+                      playUiSound("tap");
+                      setView("form");
+                    }}
+                  >
+                    {profileReady ? "Compléter mon profil" : "Créer mon profil"}
                   </button>
                 )}
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                  {buddyRows.length} profil{buddyRows.length > 1 ? "s" : ""} disponible{buddyRows.length > 1 ? "s" : ""}
+                  {buddyRows.length} profil{buddyRows.length > 1 ? "s" : ""}
                 </div>
                 {buddyRows.map((b) => (
                   <BuddyCard
@@ -1040,7 +994,7 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
                     Demandes reçues
                   </div>
                   {pendingIncoming.map((c) => (
-                    <div key={c.id} style={{ background: G.surface, borderRadius: 16, border: `1px solid ${G.greyLight}`, padding: 14, marginBottom: 10 }}>
+                    <div key={c.id} className="ms-glass-card" style={{ borderRadius: 16, padding: 14, marginBottom: 10 }}>
                       <div style={{ fontWeight: 800, color: G.ink, marginBottom: 4 }}>{c.peer_display_name}</div>
                       {c.peer_city && <div style={{ fontSize: 13, color: G.grey, marginBottom: 8 }}>{c.peer_city}</div>}
                       {c.message && <p style={{ fontSize: 13, color: G.grey, margin: "0 0 12px" }}>{c.message}</p>}
@@ -1090,7 +1044,7 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
                   Mes mises en relation
                 </div>
                 {activeConnections.length === 0 && pendingIncoming.length === 0 ? (
-                  <div style={{ textAlign: "center", padding: 28, background: G.surface, borderRadius: 16, border: `1px solid ${G.greyLight}`, color: G.grey, fontSize: 14 }}>
+                  <div className="ms-glass-card" style={{ textAlign: "center", padding: 28, borderRadius: 16, color: G.grey, fontSize: 14 }}>
                     Aucune mise en relation pour l’instant.
                   </div>
                 ) : (
@@ -1098,7 +1052,7 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
                     const ready = phonesReady(c);
                     const myShare = myPhoneShareFlag(c, user.id);
                     return (
-                      <div key={c.id} style={{ background: G.surface, borderRadius: 16, border: `1px solid ${G.greyLight}`, padding: 14, marginBottom: 10 }}>
+                      <div key={c.id} className="ms-glass-card" style={{ borderRadius: 16, padding: 14, marginBottom: 10 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}>
                           <div>
                             <div style={{ fontWeight: 800, color: G.ink }}>{c.peer_display_name}</div>
@@ -1148,12 +1102,12 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
             <div style={{ textAlign: "center", padding: 40, color: G.grey }}>Chargement…</div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ background: G.surface, borderRadius: 20, padding: 16, border: `1px solid ${G.greyLight}` }}>
+              <div className="ms-glass-card" style={{ borderRadius: 20, padding: 16 }}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Prénom affiché</label>
                 <input value={form.display_name} onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))} style={inp} maxLength={80} />
               </div>
 
-              <div style={{ background: G.surface, borderRadius: 20, padding: 16, border: `1px solid ${G.greyLight}` }}>
+              <div className="ms-glass-card" style={{ borderRadius: 20, padding: 16 }}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Ville / zone *</label>
                 <input value={form.city} onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))} placeholder="Ex. Annecy, Lyon, Arcachon…" style={inp} maxLength={120} />
                 <div style={{ marginTop: 14 }}>
@@ -1191,7 +1145,7 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
                 </div>
               </div>
 
-              <div style={{ background: G.surface, borderRadius: 20, padding: 16, border: `1px solid ${G.greyLight}` }}>
+              <div className="ms-glass-card" style={{ borderRadius: 20, padding: 16 }}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Objectif</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {BUDDY_GOAL_CATEGORIES.map((g) => (
@@ -1200,7 +1154,7 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
                 </div>
               </div>
 
-              <div style={{ background: G.surface, borderRadius: 20, padding: 16, border: `1px solid ${G.greyLight}` }}>
+              <div className="ms-glass-card" style={{ borderRadius: 20, padding: 16 }}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Type de sortie</label>
                 <div style={{ fontSize: 12, color: G.greyMid, marginBottom: 10 }}>Plusieurs choix possibles</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -1234,7 +1188,7 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
                 </div>
               </div>
 
-              <div style={{ background: G.surface, borderRadius: 20, padding: 16, border: `1px solid ${G.greyLight}` }}>
+              <div className="ms-glass-card" style={{ borderRadius: 20, padding: 16 }}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Niveau</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {BUDDY_LEVELS.map((l) => (
@@ -1243,7 +1197,7 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
                 </div>
               </div>
 
-              <div style={{ background: G.surface, borderRadius: 20, padding: 16, border: `1px solid ${G.greyLight}` }}>
+              <div className="ms-glass-card" style={{ borderRadius: 20, padding: 16 }}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 4 }}>Disponibilités</label>
                 <div style={{ fontSize: 12, color: G.greyMid, marginBottom: 14 }}>Choisis les jours et créneaux où tu peux nager</div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: G.ink, marginBottom: 8 }}>Jours</div>
@@ -1305,7 +1259,7 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
                 </div>
               </div>
 
-              <div style={{ background: G.surface, borderRadius: 20, padding: 16, border: `1px solid ${G.greyLight}` }}>
+              <div className="ms-glass-card" style={{ borderRadius: 20, padding: 16 }}>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: G.grey, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Bio (optionnel)</label>
                 <textarea
                   value={form.bio}
@@ -1681,49 +1635,95 @@ function BuddyMatchingPaid({ user, profile, onOpenMenu, onTabChange }) {
           </button>
         </Modal>
       )}
-    </div>
+
+      {filtersOpen && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Filtres binômes"
+          onClick={() => setFiltersOpen(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 400,
+            background: "rgba(15, 27, 45, 0.35)",
+            display: "flex", alignItems: "flex-end", justifyContent: "center",
+            padding: "16px 16px calc(16px + env(safe-area-inset-bottom, 0px))",
+            boxSizing: "border-box",
+          }}
+        >
+          <div
+            className="ms-sheet-card"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 420, borderRadius: 24,
+              padding: "18px 16px 16px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: G.ink }}>Filtres</div>
+              <button type="button" className="ms-glass-icon-btn" aria-label="Fermer" onClick={() => setFiltersOpen(false)}>
+                <X size={18} color={G.ink} />
+              </button>
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Objectif</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+              <FilterChip active={!goalFilter} label="Tous" onClick={() => setGoalFilter("")} />
+              {BUDDY_GOAL_CATEGORIES.map((g) => (
+                <FilterChip key={g.id} active={goalFilter === g.id} label={g.label} onClick={() => setGoalFilter(goalFilter === g.id ? "" : g.id)} />
+              ))}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: G.grey, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Niveau</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+              <FilterChip active={!levelFilter} label="Tous" onClick={() => setLevelFilter("")} />
+              {BUDDY_LEVELS.map((l) => (
+                <FilterChip key={l.id} active={levelFilter === l.id} label={l.label} onClick={() => setLevelFilter(levelFilter === l.id ? "" : l.id)} />
+              ))}
+            </div>
+            <button
+              type="button"
+              className="ms-pill-cta"
+              onClick={() => {
+                playUiSound("tap");
+                setFiltersOpen(false);
+              }}
+            >
+              Voir les profils
+            </button>
+            {activeFilters > 0 && (
+              <button
+                type="button"
+                onClick={() => { setCityFilter(""); setLevelFilter(""); setGoalFilter(""); }}
+                style={{
+                  width: "100%", marginTop: 8, minHeight: 44, border: "none", background: "none",
+                  color: G.grey, fontWeight: 600, cursor: "pointer",
+                }}
+              >
+                Tout effacer
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body,
+      )}
+    </AppTabShell>
   );
 }
 
 function BuddyCrashFallback({ onOpenMenu, onTabChange }) {
   return (
-    <div style={{ background: "transparent", minHeight: "100dvh", paddingBottom: "calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--nav-lift) + 32px)" }}>
-      <div className="app-shell" style={{ paddingTop: 48 }}>
-        <div style={{
-          background: G.surface, border: `1px solid ${G.greyLight}`, borderRadius: 20,
-          padding: "28px 20px", textAlign: "center",
-        }}>
-          <h2 style={{ margin: 0, fontFamily: "Space Grotesk, ui-sans-serif, sans-serif", fontSize: 22, fontWeight: 700, letterSpacing: "-0.03em", color: G.ink }}>
-            Binômes indisponible
-          </h2>
-          <p style={{ margin: "10px 0 20px", fontSize: 14, lineHeight: 1.5, color: G.grey }}>
-            Impossible d’ouvrir cet écran. Reviens à l’accueil et réessaie.
-          </p>
-          <button
-            type="button"
-            onClick={() => onTabChange?.("home")}
-            style={{
-              width: "100%", minHeight: 48, border: "none", borderRadius: 12, cursor: "pointer",
-              background: G.blue, color: "#fff", fontWeight: 700, fontSize: 15,
-            }}
-          >
-            Retour à l’accueil
-          </button>
-          {onOpenMenu && (
-            <button
-              type="button"
-              onClick={onOpenMenu}
-              style={{
-                width: "100%", marginTop: 8, minHeight: 44, border: "none", background: "none",
-                color: G.grey, fontSize: 14, fontWeight: 600, cursor: "pointer",
-              }}
-            >
-              Ouvrir le menu
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+    <AppStatusScreen
+      title="Binômes indisponible"
+      body="Impossible d’ouvrir cet écran. Reviens à l’accueil et réessaie."
+      primaryLabel="Retour à l’accueil"
+      onPrimary={() => {
+        playUiSound("tap");
+        onTabChange?.("home");
+      }}
+      secondaryLabel={onOpenMenu ? "Ouvrir le menu" : null}
+      onSecondary={onOpenMenu ? () => {
+        playUiSound("soft");
+        onOpenMenu();
+      } : undefined}
+    />
   );
 }
 
@@ -1753,6 +1753,7 @@ export default function BuddyMatching({ user, profile, onOpenMenu, onTabChange, 
     <BuddyErrorBoundary onOpenMenu={onOpenMenu} onTabChange={onTabChange}>
       {!canUseBuddies ? (
         <BuddyLockedScreen
+          user={user}
           onOpenMenu={onOpenMenu}
           onTabChange={onTabChange}
           onUpgrade={onUpgrade}
@@ -1763,6 +1764,7 @@ export default function BuddyMatching({ user, profile, onOpenMenu, onTabChange, 
           profile={profile}
           onOpenMenu={onOpenMenu}
           onTabChange={onTabChange}
+          onUpgrade={onUpgrade}
         />
       )}
     </BuddyErrorBoundary>

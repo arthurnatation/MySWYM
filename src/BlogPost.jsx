@@ -133,7 +133,6 @@ export default function BlogPost() {
               { label: t("nav.blog"), href: "/blog" },
               { label: article.titre },
             ]}
-            onDark
           />
           <LocalizedLink to="/blog" className="ms-contact-link">
             <ArrowLeft size={14} aria-hidden /> {t("pages.blogBack")}

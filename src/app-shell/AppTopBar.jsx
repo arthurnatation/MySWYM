@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, Settings } from "lucide-react";
-import BrandLogo from "../BrandLogo.jsx";
+import { Bell, Menu } from "lucide-react";
 import { G } from "../theme/palette.js";
 import { resolveAvatarUrl } from "../lib/avatar.js";
 import {
@@ -9,8 +8,9 @@ import {
   writeSeenNotifications,
 } from "../lib/in-app-notifications.js";
 import NotificationsSheet from "../sheets/NotificationsSheet.jsx";
+import { playUiSound } from "../lib/ui-sounds.js";
 
-/** Barre haute commune (logo + paramètres), Accueil / Programme / Profil */
+/** Barre haute Miracle : hamburger gauche · notifs + avatar */
 export default function AppTopBar({
   user,
   onOpenMenu,
@@ -18,6 +18,7 @@ export default function AppTopBar({
   plan = null,
   onTabChange = null,
   onUpgrade = null,
+  immersive = false,
 }) {
   const avatarUrl = resolveAvatarUrl(user);
   const firstName = user?.user_metadata?.firstname
@@ -69,6 +70,7 @@ export default function AppTopBar({
   };
 
   const handleOpenNotifications = () => {
+    playUiSound("soft");
     setNotifOpen(true);
     markNotificationsAsRead();
   };
@@ -87,54 +89,75 @@ export default function AppTopBar({
     if (action === "buddies") onTabChange?.("buddies");
   };
 
+  const iconColor = G.ink;
+
   return (
-    <header style={{
-      position: "sticky", top: 0, zIndex: 40,
-      background: G.glass, backdropFilter: "blur(16px)",
-      WebkitBackdropFilter: "blur(16px)",
-      borderBottom: `1px solid ${G.greyLight}`,
-      boxShadow: "0 1px 16px rgba(0,107,253,0.12)",
-      paddingTop: "var(--safe-top)",
-    }}>
-      <div className="app-shell" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 10, paddingBottom: 10, minHeight: 56 }}>
+    <header
+      className={immersive ? "ms-app-topbar is-immersive" : "ms-app-topbar"}
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 40,
+        background: immersive ? "transparent" : G.glass,
+        backdropFilter: immersive ? "none" : "blur(18px) saturate(1.15)",
+        WebkitBackdropFilter: immersive ? "none" : "blur(18px) saturate(1.15)",
+        borderBottom: immersive ? "none" : `1px solid ${G.greyLight}`,
+        boxShadow: immersive ? "none" : "0 1px 16px rgba(0,107,253,0.08)",
+        paddingTop: "var(--safe-top)",
+      }}
+    >
+      <div
+        className="app-shell"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          paddingTop: 12,
+          paddingBottom: 12,
+          minHeight: 56,
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, flex: 1 }}>
-          {onAvatarClick ? (
-            <button type="button" onClick={onAvatarClick} style={{ border: "none", background: "none", cursor: "pointer", padding: 0, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", WebkitTapHighlightColor: "transparent", flexShrink: 0 }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", overflow: "hidden", background: G.blueLight, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${G.blueMid}`, flexShrink: 0 }}>
-                {avatarUrl
-                  ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  : <span style={{ fontSize: 12, fontWeight: 800, color: G.blue }}>{initials}</span>
-                }
-              </div>
+          {onOpenMenu ? (
+            <button
+              type="button"
+              onClick={() => {
+                playUiSound("soft");
+                onOpenMenu();
+              }}
+              className="ms-glass-icon-btn"
+              aria-label="Ouvrir le menu"
+            >
+              <Menu size={20} color={iconColor} strokeWidth={2.25} />
             </button>
           ) : null}
-          <BrandLogo variant="wordmark" height={24} onDark style={{ maxWidth: "100%" }} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <button
             type="button"
             onClick={handleOpenNotifications}
+            className="ms-glass-icon-btn"
             aria-label={`Ouvrir les notifications (${unreadCount} non lues)`}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 10, minWidth: 44, minHeight: 44, WebkitTapHighlightColor: "transparent", position: "relative" }}
           >
-            <Bell size={20} color={unreadCount ? G.gold : G.grey} />
+            <Bell size={18} color={unreadCount ? G.gold : iconColor} strokeWidth={2} />
             {unreadCount > 0 && (
               <span
                 style={{
                   position: "absolute",
-                  top: 7,
-                  right: 6,
-                  minWidth: 16,
-                  height: 16,
-                  padding: "0 4px",
+                  top: 4,
+                  right: 4,
+                  minWidth: 14,
+                  height: 14,
+                  padding: "0 3px",
                   borderRadius: 999,
                   background: G.coral,
                   color: G.white,
-                  border: `2px solid ${G.glass}`,
+                  border: "2px solid rgba(255,255,255,0.9)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 9,
+                  fontSize: 8,
                   fontWeight: 800,
                   lineHeight: 1,
                 }}
@@ -143,9 +166,24 @@ export default function AppTopBar({
               </span>
             )}
           </button>
-          <button type="button" onClick={onOpenMenu} aria-label="Ouvrir le menu" style={{ background: "none", border: "none", cursor: "pointer", padding: 10, minWidth: 44, minHeight: 44, WebkitTapHighlightColor: "transparent" }}>
-            <Settings size={20} color={G.grey} />
-          </button>
+          {onAvatarClick ? (
+            <button
+              type="button"
+              onClick={() => {
+                playUiSound("soft");
+                onAvatarClick();
+              }}
+              className="ms-glass-icon-btn"
+              aria-label="Ouvrir le profil"
+              style={{ overflow: "hidden", padding: 0 }}
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <span style={{ fontSize: 12, fontWeight: 800, color: G.blue }}>{initials}</span>
+              )}
+            </button>
+          ) : null}
         </div>
       </div>
 
