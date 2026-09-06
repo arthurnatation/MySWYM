@@ -269,7 +269,22 @@ const AuthScreen = ({ onAuth, onBack, onNavigateMode, onStartQuiz, initialMode =
             </div>
           ) : <div />}
           {onBack && (
-            <button onClick={onBack} style={{ background: "none", border: `1px solid ${G.greyLight}`, borderRadius: 8, padding: "6px 12px", fontSize: 13, color: G.grey, cursor: "pointer" }}>
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label={t("common.back")}
+              style={{
+                background: "none",
+                border: `1px solid ${G.greyLight}`,
+                borderRadius: 10,
+                padding: "10px 14px",
+                minHeight: 44,
+                fontSize: 13,
+                fontWeight: 600,
+                color: G.grey,
+                cursor: "pointer",
+              }}
+            >
               {t("common.back")}
             </button>
           )}

@@ -22,7 +22,18 @@ export default function Breadcrumb({ items, onDark = false }) {
               {last || !item.href ? (
                 <span style={{ color: current, fontWeight: 600 }}>{item.label}</span>
               ) : (
-                <LocalizedLink to={item.href} style={{ color: link, textDecoration: "none", fontWeight: 600 }}>
+                <LocalizedLink
+                  to={item.href}
+                  style={{
+                    color: link,
+                    textDecoration: "none",
+                    fontWeight: 600,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    minHeight: 44,
+                    padding: "0 2px",
+                  }}
+                >
                   {item.label}
                 </LocalizedLink>
               )}

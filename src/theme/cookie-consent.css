@@ -102,6 +102,7 @@
 
 .ms-cookie-btn:focus-visible,
 .ms-cookie-link:focus-visible,
+.ms-cookie-inline-link:focus-visible,
 .ms-cookie-icon:focus-visible,
 .ms-cookie-tab:focus-visible,
 .ms-cookie-switch:focus-visible,
@@ -113,16 +114,28 @@
 .ms-cookie-link {
   display: inline-flex;
   align-items: center;
-  min-height: 2rem;
-  margin: 0.35rem 0 0;
-  padding: 0.15rem 0;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0.15rem 0 0;
+  padding: 0.35rem 0.25rem;
   border: none;
   background: none;
   color: var(--cc-primary);
   font-family: inherit;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
+}
+
+.ms-cookie-inline-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.35rem 0.1rem;
+  color: var(--cc-primary);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 /* Sticky CTA sous le cookie : éviter le double empilement pouce. */

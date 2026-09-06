@@ -93,14 +93,15 @@ function Hero() {
           <p className="lp-hero-note">{t("hero.freeNote")}</p>
         </div>
         <aside className="lp-hero-phones" aria-label={t("session.label")}>
-          <a href="#seance" className="lp-hero-phones-link">
+          <a href="#seance" className="lp-hero-phones-link" aria-label={t("hero.seeSession")}>
             <img
               src="/hero-phone-mockup.webp"
-              alt={t("hero.mockupAlt")}
+              alt=""
               className="lp-hero-phones-img"
               width={1024}
               height={1536}
               decoding="async"
+              aria-hidden="true"
             />
           </a>
         </aside>
@@ -451,7 +452,9 @@ function CoachSection() {
           <p className="lp-kicker">{t("coach.label")}</p>
           <p className="lp-card-kicker lp-coach-eyebrow">{t("coach.eyebrow")}</p>
           <h2 className="lp-h2 lp-display lp-coach-title">
-            {t("coach.titleLine1")}<br />{t("coach.titleLine2")}
+            {t("coach.titleLine1")}{" "}
+            <br />
+            {t("coach.titleLine2")}
           </h2>
           <p className="lp-lead lp-coach-body">{t("coach.body")}</p>
           <div className="lp-coach-actions">
