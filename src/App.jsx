@@ -47,6 +47,7 @@ import ProfileNudgeCard from "./ProfileNudgeCard.jsx";
 import Btn from "./ui/Btn.jsx";
 import WeekStatRing from "./ui/WeekStatRing.jsx";
 import { shouldShowPlanReveal, revealMinWaitMs, findNextSession, sessionCardModel, sessionWhyLine } from "./lib/plan-reveal.js";
+import { bootElapsedMs, isBootWarm, remainingColdBootMs } from "./lib/boot-warm.js";
 import {
   dismissProfileNudge,
   isProfileNudgeDismissed,
@@ -7656,6 +7657,17 @@ export default function App() {
     if (isAuthPath(window.location.pathname)) return "auth";
     return "onboarding";
   });
+  const [coldHold, setColdHold] = useState(() => !isBootWarm());
+  useEffect(() => {
+    if (!coldHold) return undefined;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const wait = remainingColdBootMs({
+      reduceMotion: reduce,
+      elapsed: bootElapsedMs(),
+    });
+    const t = window.setTimeout(() => setColdHold(false), wait);
+    return () => window.clearTimeout(t);
+  }, [coldHold]);
   const [activeTab, setActiveTab] = useState("home");
   const lastDockTabRef = useRef("home");
   /** Navigation onglets : remonte en haut (y compris re-tap sur l’onglet actif). */
@@ -10716,7 +10728,7 @@ export default function App() {
     </>
   );
 
-  if (screen === "loading" || waitingForAccess) return <><style>{css}</style><Loading /></>;
+  if (coldHold || screen === "loading" || waitingForAccess) return <><style>{css}</style><Loading /></>;
 
   if (isFrozen) {
     const freezePreview = plan?.weeks?.[0]?.sessions?.[0]

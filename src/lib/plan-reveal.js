@@ -50,7 +50,7 @@ const LEVEL_LABELS = {
   advanced: "Avancé",
 };
 
-export const PLAN_REVEAL_MIN_MS = 1400;
+export const PLAN_REVEAL_MIN_MS = 1800;
 
 export function shouldShowPlanReveal({ addingPlan = false } = {}) {
   return !addingPlan;

@@ -1,6 +1,13 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/lp-accordion.jsx";
 import { LpButton } from "./ui/lp-button.jsx";
 import { useEffect, useRef, useState } from "react";
+import PublicLoading from "./app-shell/PublicLoading.jsx";
+import {
+  bootElapsedMs,
+  isLandingBootSeen,
+  markLandingBootSeen,
+  remainingLandingBootMs,
+} from "./lib/boot-warm.js";
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LocalizedLink } from "./i18n/locale-routing.jsx";
@@ -599,6 +606,11 @@ export default function Landing() {
   const { t, i18n } = useTranslation("landing");
   const { pathname } = useLocation();
   const { reviews } = usePublishedReviews();
+  const [showBoot, setShowBoot] = useState(() => remainingLandingBootMs({
+    reduceMotion: prefersReducedMotion(),
+    seen: isLandingBootSeen(),
+    elapsed: bootElapsedMs(),
+  }) > 0);
 
   usePageSeo({
     title: t("meta.title"),
@@ -612,10 +624,27 @@ export default function Landing() {
   }, []);
 
   useEffect(() => {
+    if (!showBoot) {
+      markLandingBootSeen();
+      return undefined;
+    }
+    const wait = remainingLandingBootMs({
+      reduceMotion: prefersReducedMotion(),
+      seen: false,
+      elapsed: bootElapsedMs(),
+    });
+    const id = window.setTimeout(() => {
+      markLandingBootSeen();
+      setShowBoot(false);
+    }, wait);
+    return () => window.clearTimeout(id);
+  }, [showBoot]);
+
+  useEffect(() => {
     const prevBg = document.body.style.background;
     const prevScheme = document.documentElement.style.colorScheme;
-    document.body.style.background = "#000514";
-    document.documentElement.style.colorScheme = "dark";
+    document.body.style.background = "#f4f8fc";
+    document.documentElement.style.colorScheme = "light";
 
     const scrollToTarget = () => {
       const hash = window.location.hash?.replace("#", "");
@@ -637,6 +666,8 @@ export default function Landing() {
   }, [t, i18n.language, pathname]);
 
   return (
+    <>
+      {showBoot ? <PublicLoading /> : null}
     <div className="lp-root">
       <PublicNav />
       <main>
@@ -653,5 +684,6 @@ export default function Landing() {
       <Footer />
       <StickyCta revealOnScroll />
     </div>
+    </>
   );
 }

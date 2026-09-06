@@ -133,6 +133,16 @@ code {
   background: var(--bg);
   color: var(--text-h);
 }
+.ms-plan-reveal--building {
+  background: #006bfd;
+  color: #fff;
+}
+.ms-plan-reveal--building .ms-plan-reveal-title {
+  color: #fff;
+}
+.ms-plan-reveal--building .ms-plan-reveal-sub {
+  color: rgba(255, 255, 255, 0.82);
+}
 .ms-plan-reveal-ready {
   animation: ms-screen-enter 0.28s ease both;
   flex: 1;
@@ -149,6 +159,13 @@ code {
   justify-content: center;
   text-align: center;
 }
+.ms-plan-reveal-building .ms-plan-reveal-title {
+  margin-top: 1.5rem;
+}
+.ms-plan-reveal-building .myswym-boot-wordmark {
+  margin-top: 4px;
+  mix-blend-mode: screen;
+}
 .ms-plan-reveal-inner {
   max-width: 440px;
   margin: 0 auto;
@@ -157,14 +174,6 @@ code {
   flex-direction: column;
   min-height: 100dvh;
   box-sizing: border-box;
-}
-.ms-plan-reveal-spin {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--accent) 22%, transparent);
-  border-top-color: var(--accent);
-  animation: ms-plan-reveal-spin 0.9s linear infinite;
 }
 .ms-plan-reveal-title {
   margin: 1.75rem 0 0;
@@ -421,15 +430,6 @@ code {
   font-size: 13px;
   line-height: 1.45;
   color: var(--text);
-}
-@keyframes ms-plan-reveal-spin {
-  to { transform: rotate(360deg); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ms-plan-reveal-spin {
-    animation: none;
-    border-color: var(--accent);
-  }
 }
 
 .ms-app-btn {

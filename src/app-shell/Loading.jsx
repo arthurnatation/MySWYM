@@ -1,21 +1,18 @@
-/** Boot soft mist : le picto se pose. Styles dans index.html. */
+import { useEffect } from "react";
+import BootMark from "./BootMark.jsx";
+import { markBootWarm } from "../lib/boot-warm.js";
+
+/** Chargement app : GIF nageur. Styles dans index.html. */
 export default function Loading() {
+  useEffect(() => () => { markBootWarm(); }, []);
+
   return (
-    <div className="myswym-boot" role="status" aria-live="polite" aria-busy="true">
+    <div className="myswym-boot myswym-boot--app" role="status" aria-live="polite" aria-busy="true">
       <div className="myswym-boot-inner">
-        <div className="myswym-boot-stage" aria-hidden="true">
-          <span className="myswym-boot-blob" />
-          <img
-            className="myswym-boot-mark"
-            src="/logo-mark.png"
-            alt=""
-            width={120}
-            height={114}
-          />
-        </div>
+        <BootMark />
         <img
-          className="myswym-boot-wordmark"
-          src="/logo-myswym-on-light.png"
+          className="myswym-boot-wordmark myswym-boot-wordmark--app"
+          src="/logo-myswym-banner-blanc.png"
           alt="MySWYM"
           height={22}
           width={95}

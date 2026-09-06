@@ -9,6 +9,8 @@ import {
   forceAppUpdateReload,
 } from "./lib/version-gate.js";
 import Loading from "./app-shell/Loading.jsx";
+import PublicLoading from "./app-shell/PublicLoading.jsx";
+import { isAppShellPath } from "./lib/boot-warm.js";
 import AppStatusScreen from "./app-shell/AppStatusScreen.jsx";
 
 /**
@@ -83,7 +85,7 @@ export default function VersionGate({ children }) {
   };
 
   if (!state.ready) {
-    return <Loading />;
+    return isAppShellPath(window.location.pathname) ? <Loading /> : <PublicLoading />;
   }
 
   if (state.mustUpdate) {
