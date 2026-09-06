@@ -1275,7 +1275,7 @@ const MonAllureCard = ({ profile, pace100, pace50 = null, pace400 = null, isPrem
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 12 }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: G.grey, marginBottom: 8 }}>
             Meilleur temps 50 m
           </div>
           {isPremium ? (
@@ -1290,7 +1290,7 @@ const MonAllureCard = ({ profile, pace100, pace50 = null, pace400 = null, isPrem
           ) : lockedPaceBtn("0:42", "Débloquer le temps au 50 m avec Premium")}
         </div>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: G.grey, marginBottom: 8 }}>
             Meilleur temps 100 m
           </div>
           {isPremium ? (
@@ -1305,7 +1305,7 @@ const MonAllureCard = ({ profile, pace100, pace50 = null, pace400 = null, isPrem
           ) : lockedPaceBtn("1:45", "Débloquer le temps au 100 m avec Premium")}
         </div>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: G.grey, marginBottom: 8 }}>
             Meilleur temps 400 m
           </div>
           {isPremium ? (
@@ -1371,7 +1371,7 @@ const MonAllureCard = ({ profile, pace100, pace50 = null, pace400 = null, isPrem
 
       {isPremium && activePace && (
         <div style={{ marginBottom: showEvolution ? 16 : 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: "0.06em", textTransform: "uppercase", marginBottom: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: G.grey, marginBottom: 8 }}>
             Zones utiles
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

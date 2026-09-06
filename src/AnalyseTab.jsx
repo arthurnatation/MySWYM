@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Waves } from "lucide-react";
-import { FONT_DISPLAY } from "./theme/brand.js";
 import { G } from "./theme/palette.js";
 import { AppTabShell, AppTopBar } from "./app-shell/index.js";
 import { HomeBadgesSection } from "./Dashboard.jsx";
@@ -57,21 +56,14 @@ function GlassStat({ label, value, hint }) {
       }}
     >
       <div
-        style={{
-          fontFamily: FONT_DISPLAY,
-          fontSize: 22,
-          fontWeight: 700,
-          color: G.ink,
-          letterSpacing: "-0.03em",
-          fontVariantNumeric: "tabular-nums",
-          lineHeight: 1.1,
-        }}
+        className="ms-type-display"
+        style={{ fontSize: 28 }}
       >
         {value}
       </div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: G.grey, marginTop: 6 }}>{label}</div>
+      <div className="ms-type-caption" style={{ marginTop: 6 }}>{label}</div>
       {hint ? (
-        <div style={{ fontSize: 10, color: G.greyMid, marginTop: 2 }}>{hint}</div>
+        <div className="ms-type-caption" style={{ marginTop: 2, opacity: 0.85 }}>{hint}</div>
       ) : null}
     </div>
   );
@@ -266,16 +258,7 @@ export default function AnalyseTab({
             </div>
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <h2
-                style={{
-                  margin: 0,
-                  fontFamily: FONT_DISPLAY,
-                  fontSize: 20,
-                  fontWeight: 700,
-                  color: G.ink,
-                  letterSpacing: "-0.02em",
-                }}
-              >
+              <h2 className="ms-type-section">
                 Détail
               </h2>
             </div>
@@ -320,18 +303,10 @@ export default function AnalyseTab({
 
                 <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
                   <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: G.grey }}>{periodStats.title}</div>
+                    <div className="ms-type-label">{periodStats.title}</div>
                     <div
-                      style={{
-                        fontFamily: FONT_DISPLAY,
-                        fontSize: 32,
-                        fontWeight: 700,
-                        color: G.ink,
-                        letterSpacing: "-0.03em",
-                        fontVariantNumeric: "tabular-nums",
-                        lineHeight: 1.05,
-                        marginTop: 4,
-                      }}
+                      className="ms-type-display"
+                      style={{ fontSize: 36, marginTop: 4 }}
                     >
                       {periodStats.isEmptyTarget
                         ? formatKm(periodStats.plannedMeters)
@@ -339,12 +314,12 @@ export default function AnalyseTab({
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: G.blue, fontVariantNumeric: "tabular-nums" }}>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: G.blue, fontVariantNumeric: "tabular-nums", letterSpacing: "var(--ms-tracking-tight)" }}>
                       {periodStats.showPrescribed
                         ? `${periodStats.doneSessions}/${periodStats.plannedSessions}`
                         : periodStats.doneSessions}
                     </div>
-                    <div style={{ fontSize: 11, color: G.greyMid }}>séances</div>
+                    <div className="ms-type-caption">séances</div>
                   </div>
                 </div>
 
@@ -390,19 +365,12 @@ export default function AnalyseTab({
               <>
                 <div style={{ textAlign: "center", marginBottom: 18 }}>
                   <div
-                    style={{
-                      fontFamily: FONT_DISPLAY,
-                      fontSize: 56,
-                      fontWeight: 700,
-                      letterSpacing: "-0.04em",
-                      color: G.ink,
-                      fontVariantNumeric: "tabular-nums",
-                      lineHeight: 1,
-                    }}
+                    className="ms-type-display"
+                    style={{ fontSize: 48 }}
                   >
                     {paceLabel(profile?.pace100)}
                   </div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: G.grey, marginTop: 8 }}>
+                  <div className="ms-type-label" style={{ marginTop: 8 }}>
                     T100 / 100 m
                   </div>
                 </div>

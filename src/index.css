@@ -2,7 +2,7 @@
 @import "./theme/app-immersive.css";
 
 :root {
-  --text: #6B7C8F;
+  --text: #4A5D72;
   --text-h: #0F1B2D;
   --bg: #EAF2FA;
   --border: rgba(15, 27, 45, 0.08);
@@ -13,12 +13,22 @@
   --social-bg: rgba(255, 255, 255, 0.55);
   --shadow: 0 12px 36px rgba(15, 60, 120, 0.12);
 
-  --sans: Geist, ui-sans-serif, system-ui, sans-serif;
-  --heading: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --sans: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --heading: var(--sans);
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 16px/150% var(--sans);
-  letter-spacing: 0.01em;
+  /* Échelle typo app (sobre / classique, réf. Miracle Points) */
+  --type-page: 1.75rem; /* 28 · titre d’écran */
+  --type-section: 1.125rem; /* 18 · titre de carte / section */
+  --type-display: 2.5rem; /* 40 · grand chiffre */
+  --type-body: 0.9375rem; /* 15 · corps */
+  --type-label: 0.8125rem; /* 13 · légende */
+  --type-caption: 0.75rem; /* 12 */
+  --type-tracking-tight: -0.02em;
+  --type-tracking: -0.01em;
+
+  font: 16px/1.5 var(--sans);
+  letter-spacing: var(--type-tracking);
   color-scheme: light;
   color: var(--text-h);
   background: var(--bg);
@@ -55,7 +65,7 @@ h2,
 h3 {
   font-family: var(--heading);
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--type-tracking-tight);
   color: inherit;
 }
 

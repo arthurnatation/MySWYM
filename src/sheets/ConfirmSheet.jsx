@@ -38,10 +38,10 @@ export default function ConfirmSheet({
         <h3
           id="confirm-sheet-title"
           style={{
-            fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+            fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
             fontSize: 22,
             fontWeight: 700,
-            letterSpacing: "-0.03em",
+            letterSpacing: "-0.02em",
             color: G.ink,
             textAlign: "center",
             marginBottom: 8,

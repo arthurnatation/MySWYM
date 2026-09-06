@@ -189,7 +189,7 @@ export default function UpgradeModal({
           </div>
           <div
             style={{
-              fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif",
+              fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
               fontSize: 22,
               fontWeight: 800,
               color: G.ink,

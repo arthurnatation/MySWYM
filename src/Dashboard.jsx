@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   Award, Flame, Trophy, TrendingUp, Target,
 } from "lucide-react";
-import { FONT, FONT_DISPLAY } from "./theme/brand.js";
+import { FONT } from "./theme/brand.js";
 import { G } from "./theme/palette.js";
 import SessionHeroCard from "./SessionHeroCard.jsx";
 import Btn from "./ui/Btn.jsx";
@@ -159,7 +159,7 @@ export default function Dashboard({
 
         {!plan && (
           <div className="ms-glass-card" style={{ padding: "22px 18px", marginBottom: 16 }}>
-            <h2 style={{ fontSize: 20, fontWeight: 700, fontFamily: FONT_DISPLAY, color: G.ink, margin: "0 0 8px" }}>
+            <h2 className="ms-type-section" style={{ marginBottom: 8 }}>
               Ton plan t’attend
             </h2>
             <p style={{ fontSize: 14, color: G.grey, lineHeight: 1.45, margin: "0 0 18px" }}>

@@ -21,7 +21,7 @@ export default function FeedbackModal({ weekNumber, onSubmit, onSkip, isPremium 
         <p style={{ fontSize: 11, fontWeight: 700, color: G.grey, letterSpacing: 2, textTransform: "uppercase", textAlign: "center", marginBottom: 8 }}>
           Semaine {weekNumber} terminée
         </p>
-        <h3 style={{ fontFamily: "Space Grotesk, ui-sans-serif, system-ui, sans-serif", fontSize: 24, fontWeight: 700, letterSpacing: "-0.03em", color: G.ink, textAlign: "center", marginBottom: 6 }}>
+        <h3 style={{ fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif", fontSize: 24, fontWeight: 700, letterSpacing: "-0.02em", color: G.ink, textAlign: "center", marginBottom: 6 }}>
           Comment tu t'es senti·e ?
         </h3>
         <p style={{ color: G.grey, fontSize: 14, textAlign: "center", marginBottom: isPremium ? 28 : 12, lineHeight: 1.5 }}>

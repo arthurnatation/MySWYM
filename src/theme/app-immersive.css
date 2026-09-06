@@ -9,7 +9,16 @@
   --ms-mist-mid: #c5dffb;
   --ms-mist-bot: #f4f8fc;
   --ms-ink: #0F1B2D;
-  --ms-ink-soft: #6b7c8f;
+  --ms-ink-soft: #4a5d72;
+  --ms-sans: Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --ms-type-page: 1.75rem;
+  --ms-type-section: 1.125rem;
+  --ms-type-display: 2.5rem;
+  --ms-type-body: 0.9375rem;
+  --ms-type-label: 0.8125rem;
+  --ms-type-caption: 0.75rem;
+  --ms-tracking-tight: -0.02em;
+  --ms-tracking: -0.01em;
   --ms-glass-bg: rgba(255, 255, 255, 0.72);
   --ms-glass-bg-elevated: rgba(255, 255, 255, 0.88);
   --ms-glass-border: rgba(255, 255, 255, 0.95);
@@ -28,6 +37,68 @@
   --ms-icon-btn: 44px;
 }
 
+/* Hiérarchie typo app (Miracle : une sans, poids + taille) */
+.ms-type-page {
+  margin: 0;
+  font-family: var(--ms-sans);
+  font-size: var(--ms-type-page);
+  font-weight: 700;
+  letter-spacing: var(--ms-tracking-tight);
+  line-height: 1.15;
+  color: var(--ms-ink);
+}
+
+.ms-type-section {
+  margin: 0;
+  font-family: var(--ms-sans);
+  font-size: var(--ms-type-section);
+  font-weight: 600;
+  letter-spacing: var(--ms-tracking);
+  line-height: 1.25;
+  color: var(--ms-ink);
+}
+
+.ms-type-display {
+  margin: 0;
+  font-family: var(--ms-sans);
+  font-size: var(--ms-type-display);
+  font-weight: 700;
+  letter-spacing: var(--ms-tracking-tight);
+  line-height: 1.05;
+  color: var(--ms-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.ms-type-body {
+  margin: 0;
+  font-family: var(--ms-sans);
+  font-size: var(--ms-type-body);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.5;
+  color: var(--ms-ink-soft);
+}
+
+.ms-type-label {
+  margin: 0;
+  font-family: var(--ms-sans);
+  font-size: var(--ms-type-label);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
+  color: var(--ms-ink-soft);
+}
+
+.ms-type-caption {
+  margin: 0;
+  font-family: var(--ms-sans);
+  font-size: var(--ms-type-caption);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.3;
+  color: var(--ms-ink-soft);
+}
+
 /* ── Shell : ciel soft (Miracle) + léger grain eau (OPEN) ── */
 .ms-home-immersive,
 .ms-app-immersive {
@@ -35,6 +106,10 @@
   isolation: isolate;
   min-height: 100dvh;
   background: var(--ms-mist-bot);
+  font-family: var(--ms-sans);
+  letter-spacing: var(--ms-tracking);
+  -webkit-font-smoothing: antialiased;
+  color: var(--ms-ink);
 }
 
 .ms-home-immersive-bg,
@@ -69,7 +144,7 @@
   background:
     radial-gradient(ellipse 80% 55% at 50% 28%, rgba(255, 255, 255, 0.55), transparent 62%),
     linear-gradient(180deg, #9ec8f5 0%, #d4e8fb 38%, #eef5fb 68%, #f7fafc 100%);
-  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ms-sans);
   -webkit-font-smoothing: antialiased;
   color: var(--ms-ink, #0f1b2d);
 }
@@ -99,19 +174,19 @@
 
 .ms-status-title {
   margin: 0 0 10px;
-  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ms-sans);
   font-size: 1.35rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--ms-tracking-tight);
   line-height: 1.25;
   color: var(--ms-ink, #0f1b2d);
 }
 
 .ms-status-body {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--ms-type-body);
   line-height: 1.5;
-  color: var(--ms-ink-soft, #6b7c8f);
+  color: var(--ms-ink-soft, #4a5d72);
 }
 
 .ms-status-cta {
@@ -213,18 +288,21 @@
 
 .ms-home-greet p {
   margin: 0 0 6px;
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--ms-type-body);
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.45;
   color: var(--ms-ink-soft);
 }
 
 .ms-home-greet h1 {
   margin: 0;
-  font-size: clamp(28px, 7vw, 34px);
+  font-family: var(--ms-sans);
+  font-size: var(--ms-type-page);
   font-weight: 700;
-  letter-spacing: -0.035em;
+  letter-spacing: var(--ms-tracking-tight);
   color: var(--ms-ink);
-  line-height: 1.12;
+  line-height: 1.15;
 }
 
 .ms-home-immersive .ms-home-streak,
@@ -846,11 +924,11 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  font-size: 12px;
-  font-weight: 750;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-family: var(--ms-sans);
+  font-size: var(--ms-type-label);
+  font-weight: 600;
+  letter-spacing: var(--ms-tracking);
+  text-transform: none;
   color: var(--ms-phase-accent);
 }
 
@@ -2972,10 +3050,10 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ms-sans);
   font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: var(--ms-tracking-tight);
   color: var(--ms-ink);
   font-variant-numeric: tabular-nums;
   line-height: 1;

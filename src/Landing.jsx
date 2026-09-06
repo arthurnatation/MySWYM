@@ -88,11 +88,11 @@ function Hero() {
         <aside className="lp-hero-phones" aria-label={t("session.label")}>
           <a href="#seance" className="lp-hero-phones-link">
             <img
-              src="/hero-phone-mockup.png"
+              src="/hero-phone-mockup.webp"
               alt={t("hero.mockupAlt")}
               className="lp-hero-phones-img"
-              width={682}
-              height={1024}
+              width={1024}
+              height={1536}
               decoding="async"
             />
           </a>
@@ -404,11 +404,11 @@ function SessionPreview() {
           <p className="lp-lead lp-lead-tight">{t("session.subtitle")}</p>
           <div className="lp-session-preview-detail">
             <img
-              src="/session-detail-mockup.png"
+              src="/session-detail-mockup.webp"
               alt={t("session.detailMockupAlt")}
               className="lp-session-preview-detail-img"
-              width={459}
-              height={956}
+              width={1024}
+              height={1536}
               decoding="async"
               loading="lazy"
             />
@@ -542,11 +542,11 @@ function FAQ() {
           <aside className="lp-faq-chat" aria-label={t("faq.chatTitle")}>
             <div className="lp-faq-chat-phone">
               <img
-                src="/faq-chat-mockup.png"
+                src="/faq-chat-mockup.webp"
                 alt={t("faq.mockupAlt")}
                 className="lp-faq-chat-phone-img"
-                width={682}
-                height={1024}
+                width={1024}
+                height={1536}
                 decoding="async"
                 loading="lazy"
               />

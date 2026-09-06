@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Check, X, ChevronRight, History, Waves } from "lucide-react";
-import { FONT_DISPLAY } from "./theme/brand.js";
 import { G } from "./theme/palette.js";
 import { AppTabShell, AppTopBar } from "./app-shell/index.js";
 import HistorySessionSheet from "./sheets/HistorySessionSheet.jsx";
@@ -105,19 +104,10 @@ export default function HistoriqueTab({
 
       <div className="app-shell" style={{ paddingTop: 8 }}>
         <div style={{ marginBottom: 18 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: G.grey, marginBottom: 4 }}>
+          <p className="ms-type-label" style={{ marginBottom: 4 }}>
             Tes séances
-          </div>
-          <h1
-            style={{
-              margin: 0,
-              fontFamily: FONT_DISPLAY,
-              fontSize: 28,
-              fontWeight: 700,
-              letterSpacing: "-0.03em",
-              color: G.ink,
-            }}
-          >
+          </p>
+          <h1 className="ms-type-page">
             Historique
           </h1>
         </div>
@@ -163,45 +153,30 @@ export default function HistoriqueTab({
             <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
               <div className="ms-glass-card" style={{ flex: 1, padding: "14px 12px", textAlign: "center" }}>
                 <div
-                  style={{
-                    fontFamily: FONT_DISPLAY,
-                    fontSize: 24,
-                    fontWeight: 700,
-                    color: G.ink,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
+                  className="ms-type-display"
+                  style={{ fontSize: 28 }}
                 >
                   {items.length}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: G.grey, marginTop: 4 }}>Séances</div>
+                <div className="ms-type-caption" style={{ marginTop: 4 }}>Séances</div>
               </div>
               <div className="ms-glass-card" style={{ flex: 1, padding: "14px 12px", textAlign: "center" }}>
                 <div
-                  style={{
-                    fontFamily: FONT_DISPLAY,
-                    fontSize: 24,
-                    fontWeight: 700,
-                    color: G.ink,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
+                  className="ms-type-display"
+                  style={{ fontSize: 28 }}
                 >
                   {(totalMeters / 1000).toFixed(1)}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: G.grey, marginTop: 4 }}>km</div>
+                <div className="ms-type-caption" style={{ marginTop: 4 }}>km</div>
               </div>
               <div className="ms-glass-card" style={{ flex: 1, padding: "14px 12px", textAlign: "center" }}>
                 <div
-                  style={{
-                    fontFamily: FONT_DISPLAY,
-                    fontSize: 24,
-                    fontWeight: 700,
-                    color: G.mint,
-                    fontVariantNumeric: "tabular-nums",
-                  }}
+                  className="ms-type-display"
+                  style={{ fontSize: 28, color: "var(--ms-mint, #1fae86)" }}
                 >
                   {doneCount}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: G.grey, marginTop: 4 }}>Terminées</div>
+                <div className="ms-type-caption" style={{ marginTop: 4 }}>Terminées</div>
               </div>
             </div>
 

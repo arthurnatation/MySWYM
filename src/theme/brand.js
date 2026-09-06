@@ -25,5 +25,8 @@ export const BRAND = {
   night: "#0f1b2d",
 };
 
-export const FONT = "Geist, ui-sans-serif, system-ui, sans-serif";
-export const FONT_DISPLAY = '"Space Grotesk", ui-sans-serif, system-ui, sans-serif';
+/** Une seule sans sobre (réf. Miracle / SF) : titres et corps partagent la même famille. */
+export const FONT =
+  "Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+/** Alias titres app : plus de Space Grotesk (trop « display »). Landing garde --lp-display. */
+export const FONT_DISPLAY = FONT;

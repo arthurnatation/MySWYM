@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase.js";
-import { FONT_DISPLAY } from "./theme/brand.js";
 import { G } from "./theme/palette.js";
 import CoachCard from "./CoachCard.jsx";
 import { AppTabShell } from "./app-shell/index.js";
@@ -149,14 +148,14 @@ export default function PlanTab({
       <div className="app-shell" style={{ paddingTop: 14, paddingBottom: 8 }}>
         <div style={{ marginBottom: 14 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 700, letterSpacing: "-0.03em", color: G.ink, margin: 0 }}>
-              Programme
-            </h1>
+          <h1 className="ms-type-page">
+            Programme
+          </h1>
             <span className="ms-chip" style={{ height: 28, fontSize: 11 }}>
               Sem. {currentWeekIndex >= 0 ? currentWeekIndex + 1 : plan.weeks.length}/{plan.weeks.length}
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: 14, color: G.grey, lineHeight: 1.4 }}>
+          <p className="ms-type-body">
             {planLabel}
             {currentWeek?.focus ? ` · ${currentWeek.focus}` : ""}
           </p>
