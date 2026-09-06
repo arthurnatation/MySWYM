@@ -41,6 +41,25 @@
             document.documentElement.lang = "en";
           }
         } catch (e) {}
+        window.__MYSWYM_BOOT_AT = Date.now();
+        try {
+          var path = location.pathname || "/";
+          var p = path.replace(/\/+$/, "") || "/";
+          var app = p === "/app" || p.indexOf("/app/") === 0
+            || p === "/connexion" || p === "/inscription"
+            || p === "/login" || p === "/register"
+            || p === "/admin" || p.indexOf("/admin/") === 0
+            || p.indexOf("/prototype/") === 0;
+          if (!app) document.documentElement.classList.add("myswym-boot-public");
+          var warm = sessionStorage.getItem("myswym-boot-warm") === "1";
+          if (!warm) {
+            for (var i = 0; i < localStorage.length; i++) {
+              var k = localStorage.key(i);
+              if (k && k.indexOf("auth-token") !== -1) { warm = true; break; }
+            }
+          }
+          if (warm) document.documentElement.classList.add("myswym-boot-warm");
+        } catch (e) {}
       })();
     </script>
     <style>
@@ -58,8 +77,8 @@
         justify-content: center;
         padding: 24px;
         background:
-          radial-gradient(ellipse 80% 55% at 50% 28%, rgba(255, 255, 255, 0.55), transparent 62%),
-          linear-gradient(180deg, #9ec8f5 0%, #d4e8fb 38%, #eef5fb 68%, #f7fafc 100%);
+          radial-gradient(ellipse 90% 50% at 50% -8%, rgba(126, 184, 245, 0.55), transparent 55%),
+          linear-gradient(180deg, #d4e8fb 0%, #eef5fb 40%, #f4f8fc 100%);
         font-family: Geist, ui-sans-serif, system-ui, sans-serif;
         -webkit-font-smoothing: antialiased;
         color: #0f1b2d;
@@ -71,89 +90,85 @@
         width: min(280px, 86vw);
       }
       .myswym-boot-stage {
-        position: relative;
-        width: 168px;
-        height: 112px;
+        width: 200px;
+        height: 200px;
         display: grid;
         place-items: center;
       }
-      .myswym-boot-blob {
-        position: absolute;
-        width: 72px;
-        height: 56px;
-        border-radius: 58% 42% 48% 52% / 46% 54% 46% 54%;
-        background: linear-gradient(145deg, #7eb8f5 0%, #3d8fff 48%, #006bfd 100%);
-        opacity: 0;
-        animation: myswym-boot-blob 1.15s cubic-bezier(0.22, 1, 0.36, 1) both;
-      }
-      .myswym-boot-mark {
-        position: relative;
-        z-index: 1;
+      .myswym-boot-gif,
+      .myswym-boot-still {
         display: block;
-        width: 120px;
-        height: auto;
+        width: 200px;
+        height: 200px;
         object-fit: contain;
-        opacity: 0;
-        transform: scale(0.72);
-        filter: blur(6px);
-        animation: myswym-boot-mark-in 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+      }
+      .myswym-boot-gif + .myswym-boot-still {
+        display: none;
       }
       .myswym-boot-wordmark {
         display: block;
-        height: 22px;
+        height: 24px;
         width: auto;
         max-width: 168px;
-        margin-top: 28px;
+        margin-top: 0;
         object-fit: contain;
-        opacity: 0;
-        transform: translateY(6px);
-        animation: myswym-boot-word-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 1.05s both;
+        opacity: 1;
       }
-      @keyframes myswym-boot-blob {
-        0% {
-          opacity: 0;
-          transform: scale(0.55) rotate(-6deg);
-          border-radius: 58% 42% 48% 52% / 46% 54% 46% 54%;
-          filter: blur(0);
-        }
-        22% {
-          opacity: 1;
-          transform: scale(1) rotate(-2deg);
-        }
-        48% {
-          transform: scale(1.14) rotate(3deg);
-          border-radius: 42% 58% 52% 48% / 54% 42% 58% 46%;
-        }
-        72% {
-          opacity: 1;
-          transform: scale(1.28) rotate(0deg);
-          border-radius: 50% 50% 46% 54% / 48% 52% 48% 52%;
-          filter: blur(2px);
-        }
-        100% {
-          opacity: 0;
-          transform: scale(1.55) rotate(0deg);
-          filter: blur(12px);
-        }
+      .myswym-boot-track {
+        width: 72px;
+        height: 2px;
+        margin-top: 28px;
+        border-radius: 1px;
+        background: rgba(15, 27, 45, 0.12);
+        overflow: hidden;
       }
-      @keyframes myswym-boot-mark-in {
-        0% { opacity: 0; transform: scale(0.72); filter: blur(6px); }
-        55% { opacity: 1; filter: blur(0); }
-        78% { transform: scale(1.04); }
-        100% { opacity: 1; transform: scale(1); filter: blur(0); }
+      .myswym-boot-bar {
+        display: block;
+        height: 100%;
+        width: 100%;
+        transform-origin: center;
+        background: #006bfd;
+        animation: myswym-boot-bar 1.1s ease-in-out infinite;
       }
-      @keyframes myswym-boot-word-in {
-        from { opacity: 0; transform: translateY(6px); }
-        to { opacity: 1; transform: translateY(0); }
+      @keyframes myswym-boot-bar {
+        0%, 100% { transform: scaleX(0.22); opacity: 0.45; }
+        50% { transform: scaleX(1); opacity: 1; }
+      }
+      .myswym-boot--app {
+        background: #006bfd;
+        color: #fff;
+      }
+      html:not(.myswym-boot-public) .myswym-boot:not(.myswym-boot--public) {
+        background: #006bfd;
+        color: #fff;
+      }
+      .myswym-boot--app .myswym-boot-wordmark,
+      .myswym-boot-wordmark--app {
+        mix-blend-mode: screen;
+        margin-top: 4px;
+        height: 22px;
+      }
+      .myswym-boot-public-ui {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+      }
+      html.myswym-boot-public .myswym-boot-public-ui {
+        display: flex;
+      }
+      html.myswym-boot-public .myswym-boot-app {
+        display: none;
+      }
+      html:not(.myswym-boot-public) .myswym-boot-public-ui {
+        display: none;
       }
       @media (prefers-reduced-motion: reduce) {
-        .myswym-boot-blob { display: none; }
-        .myswym-boot-mark,
-        .myswym-boot-wordmark {
-          animation: none !important;
+        .myswym-boot-gif { display: none; }
+        .myswym-boot-gif + .myswym-boot-still { display: block; }
+        .myswym-boot-bar {
+          animation: none;
+          transform: scaleX(0.4);
           opacity: 1;
-          transform: none;
-          filter: none;
         }
       }
     </style>
@@ -162,11 +177,17 @@
     <div id="root">
       <div class="myswym-boot" role="status" aria-live="polite" aria-busy="true">
         <div class="myswym-boot-inner">
-          <div class="myswym-boot-stage" aria-hidden="true">
-            <span class="myswym-boot-blob"></span>
-            <img class="myswym-boot-mark" src="/logo-mark.png" alt="" width="120" height="114" />
+          <div class="myswym-boot-app">
+            <div class="myswym-boot-stage" aria-hidden="true">
+              <img class="myswym-boot-gif" src="/chargement-application-natation.gif" alt="" width="200" height="200" />
+              <img class="myswym-boot-still" src="/boot-mark-still.png" alt="" width="200" height="200" />
+            </div>
+            <img class="myswym-boot-wordmark myswym-boot-wordmark--app" src="/logo-myswym-banner-blanc.png" alt="MySWYM" height="22" width="95" />
           </div>
-          <img class="myswym-boot-wordmark" src="/logo-myswym-on-light.png" alt="MySWYM" height="22" width="95" />
+          <div class="myswym-boot-public-ui">
+            <img class="myswym-boot-wordmark" src="/logo-myswym-on-light.png" alt="MySWYM" height="24" width="103" />
+            <div class="myswym-boot-track" aria-hidden="true"><span class="myswym-boot-bar"></span></div>
+          </div>
         </div>
       </div>
     </div>

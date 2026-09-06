@@ -3,8 +3,7 @@ import { trackUiError } from "./lib/analytics.js";
 import AppStatusScreen from "./app-shell/AppStatusScreen.jsx";
 
 /**
- * Filet global, évite l’écran blanc / « Chargement » mort après un crash React.
- * Télémétrie : PostHog `ui_error` uniquement (pas de Sentry).
+ * Filet React : recharge l’URL courante, ne redirige jamais vers /app.
  */
 export default class AppErrorBoundary extends Component {
   constructor(props) {
@@ -32,13 +31,15 @@ export default class AppErrorBoundary extends Component {
     }
   }
 
+  componentDidUpdate(prevProps) {
+    if (this.props.resetKey !== prevProps.resetKey && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
+  }
+
   handleReload = () => {
     this.setState({ hasError: false });
-    try {
-      window.location.assign("/app");
-    } catch {
-      window.location.reload();
-    }
+    window.location.reload();
   };
 
   render() {
@@ -47,7 +48,7 @@ export default class AppErrorBoundary extends Component {
     return (
       <AppStatusScreen
         title="Un souci est survenu"
-        body="Recharge l’app, ton plan reste enregistré. Si ça continue, écris à support@myswym.app."
+        body="Recharge la page. Si ça continue, écris à support@myswym.app."
         primaryLabel="Relancer"
         onPrimary={this.handleReload}
       />

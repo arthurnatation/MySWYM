@@ -20,8 +20,16 @@ import CookieBanner from './CookieBanner.jsx'
 import { hasPerformanceConsent } from './lib/cookie-consent.js'
 import VersionGate from './VersionGate.jsx'
 import AppErrorBoundary from './AppErrorBoundary.jsx'
+import Loading from './app-shell/Loading.jsx'
+import PublicLoading from './app-shell/PublicLoading.jsx'
+import { isAppShellPath } from './lib/boot-warm.js'
 import { LocaleSync } from './i18n/locale-routing.jsx'
 import { localeFromPathname, withLocalePrefix } from './i18n/locale-path.js'
+
+function RoutedErrorBoundary({ children }) {
+  const { pathname } = useLocation()
+  return <AppErrorBoundary resetKey={pathname}>{children}</AppErrorBoundary>
+}
 
 const App = lazy(() => import('./App.jsx'))
 const ConversionFlow = lazy(() => import('./conversion/ConversionFlow.tsx').then((m) => ({ default: m.ConversionFlow })))
@@ -37,22 +45,7 @@ const ArthurOpsAdmin = lazy(() => import('./ArthurOpsAdmin.jsx'))
 const ArthurReadinessAdmin = lazy(() => import('./ArthurReadinessAdmin.jsx'))
 
 function RouteFallback() {
-  return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        background: '#000514',
-        color: '#b4c6db',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'Geist, ui-sans-serif, system-ui, sans-serif',
-        fontSize: 14,
-      }}
-    >
-      Chargement…
-    </div>
-  )
+  return isAppShellPath(window.location.pathname) ? <Loading /> : <PublicLoading />
 }
 
 /** Ancienne home marketing `/accueil` → `/fr` ; `/homepage` → `/`. */
@@ -197,8 +190,8 @@ function ConsentedSpeedInsights() {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <VersionGate>
-    <AppErrorBoundary>
     <BrowserRouter>
+      <RoutedErrorBoundary>
       <LocaleSync />
       <LegacyQueryRedirects />
       <Suspense fallback={<RouteFallback />}>
@@ -240,8 +233,8 @@ createRoot(document.getElementById('root')).render(
       </Suspense>
       <CookieBanner />
       <ConsentedSpeedInsights />
+      </RoutedErrorBoundary>
     </BrowserRouter>
-    </AppErrorBoundary>
     </VersionGate>
   </StrictMode>,
 )
